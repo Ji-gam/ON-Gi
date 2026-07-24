@@ -27,7 +27,7 @@ jobs:
           file: app/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ai-health:app-v1.0.0
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/on-gi:app-v1.0.0
 
       - name: Build and push AI Worker image
         uses: docker/build-push-action@v6
@@ -36,7 +36,7 @@ jobs:
           file: ai_worker/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ai-health:ai-v1.0.0
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/on-gi:ai-v1.0.0
 
       - name: Sync nginx config to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -58,8 +58,7 @@ jobs:
             cd ~/ai_project
             docker compose pull fastapi ai-worker
             docker compose run --rm fastapi uv run --no-sync alembic upgrade head
-            docker compose run --rm fastapi uv run --no-sync python -m app.scripts.bootstrap_dur_from_sqlite
-            docker compose run --rm fastapi uv run --no-sync python -m app.scripts.bootstrap_food_drug_from_json
+            # 도메인 시드/부트스트랩 스크립트가 필요하면 여기에 추가한다.
             docker compose up -d fastapi ai-worker mysql redis nginx
             sleep 5
             docker compose restart nginx
