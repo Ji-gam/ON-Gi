@@ -388,6 +388,59 @@ def widget_experiment() -> tuple[str, int, str]:
     ]
     return "".join(b), 592, "H1-a v3 검증 실험 전체 — 입력부터 판정까지"
 
+# ── 위젯 8 · 결과 대시보드 (그래프) ─────────────────────────────────────
+GAUGES = [
+    ("후보 보유율", 83.9, 60, "teal"),
+    ("피복률@5", 78.6, 78, "teal"),
+    ("호혜 충족률", 99.9, 95, "teal"),
+    ("야간 완전피복", 29.8, 30, "amber"),
+]
+
+
+def widget_dashboard() -> tuple[str, int, str]:
+    b = [label(50, 44, "후보 풀 크기에 따른 상보 후보 보유율")]
+
+    b.append('<line x1="90" y1="128" x2="630" y2="128" stroke="#888780" '
+             'stroke-width="0.5" stroke-dasharray="3 3"/>')
+    b.append('<text class="ts" x="100" y="119" dominant-baseline="central">60% 기준</text>')
+    for i, (n, pct) in enumerate(DENSITY):
+        x = 100 + i * 90
+        h = round(pct * 1.2)
+        ramp = "teal" if pct >= 60 else "gray"
+        b.append(f'<g class="c-{ramp}"><rect x="{x}" y="{200 - h}" width="60" height="{h}" '
+                 f'rx="4" stroke-width="0.5"/></g>')
+        b.append(f'<text class="ts" x="{x + 30}" y="{191 - h}" text-anchor="middle" '
+                 f'dominant-baseline="central">{pct}%</text>')
+        b.append(f'<text class="ts" x="{x + 30}" y="216" text-anchor="middle" '
+                 f'dominant-baseline="central">{n}</text>')
+    b.append('<line x1="90" y1="200" x2="630" y2="200" stroke="#888780" stroke-width="0.5"/>')
+
+    b.append(label(50, 250, "지표별 실측 대 목표"))
+    for i, (name, val, goal, ramp) in enumerate(GAUGES):
+        y = 266 + i * 40
+        cy = y + 12
+        w = round(val * 3.2)
+        gx = 180 + round(goal * 3.2)
+        b.append(f'<text class="ts" x="170" y="{cy}" text-anchor="end" '
+                 f'dominant-baseline="central">{name}</text>')
+        b.append(f'<rect class="box" x="180" y="{y}" width="320" height="24" rx="4" '
+                 f'stroke-width="0.5"/>')
+        b.append(f'<g class="c-{ramp}"><rect x="180" y="{y}" width="{w}" height="24" rx="4" '
+                 f'stroke-width="0.5"/><text class="ts" x="{172 + w}" y="{cy}" '
+                 f'text-anchor="end" dominant-baseline="central">{val}%</text></g>')
+        b.append(f'<line x1="{gx}" y1="{y - 4}" x2="{gx}" y2="{y + 28}" stroke="#5F5E5A" '
+                 f'stroke-width="1" stroke-dasharray="3 3"/>')
+        b.append(f'<text class="ts" x="516" y="{cy}" dominant-baseline="central">목표 {goal}%</text>')
+
+    b.append(box(50, 440, 580, 64, "gray", [
+        "통과 3 · 미달 1 · 판정 보류 1",
+        "가치관 축은 만족도 정답이 없어 이 실험으로 판정할 수 없다"]))
+    b.append(legend(524, [(62, "teal", "목표 달성"), (164, "amber", "미달")]))
+    b.append('<line x1="228" y1="524" x2="248" y2="524" stroke="#5F5E5A" '
+             'stroke-width="1" stroke-dasharray="3 3"/>'
+             '<text class="ts" x="256" y="524" dominant-baseline="central">목표선</text>')
+    return "".join(b), 548, "실험 결과 대시보드 — 밀도 곡선과 지표별 실측 대 목표"
+
 WIDGETS = {
     "01-matching-pipeline": widget_matching,
     "02-hypothesis-revision": widget_hypothesis,
@@ -396,6 +449,7 @@ WIDGETS = {
     "05-metric-change": widget_metric_change,
     "06-coverage-reciprocity": widget_two_axis,
     "07-experiment-summary": widget_experiment,
+    "08-results-dashboard": widget_dashboard,
 }
 
 
