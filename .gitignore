@@ -65,3 +65,6 @@ app/secrets/
 # 개인 로컬 백업(drugs_full.db 등 app/database/*.db 원본을 담은 zip) - 커밋 대상 아님
 app/database/database.zip
 
+
+# 공공데이터 원본 CSV — scripts/fetch_care_data.py 로 재생성 가능
+data/raw/
