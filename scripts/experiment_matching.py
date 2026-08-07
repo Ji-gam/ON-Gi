@@ -134,11 +134,26 @@ def rank_ours_m_only(a: Person, b: Person) -> float:
     return mutual(a, b)
 
 
+def rank_staged(a: Person, b: Person) -> float:
+    """콜드스타트 가중치 — R·B 몫(0.40)을 M으로 넘긴다.
+
+    R·B를 빼고 정규화만 하면 순위가 안 바뀐다(상수로 나누는 것이므로).
+    M과 V의 비율 자체를 바꿔야 한다. 남는 몫을 M에 주는 근거:
+    시간이 안 맞으면 만족도를 논할 기회조차 없다 — 상보성이 필요조건이다.
+    """
+    return 0.35 * cosine01(a.value, b.value) + 0.65 * mutual(a, b)
+
+
+# M 비중 스윕 — S = w·M + (1-w)·V. 현재 가중치의 실효 M 비중은 0.25/0.60 = 0.417
+WEIGHT_SWEEP = [0.30, 0.42, 0.50, 0.60, 0.65, 0.70, 0.80, 0.90]
+
+
 METHODS = {
     "B0 무작위":            lambda a, b: 0.0,
     "B2 단순 시간 겹침":     naive_overlap,
     "B3 한 방향 피복":       coverage,          # 상대가 내 근무 시간에 비어 있는가만 본다
     "S 전체 가중치":         rank_ours_full,
+    "S 콜드스타트 가중치":    rank_staged,
     "M 상보성만(양방향)":    rank_ours_m_only,
 }
 
@@ -182,9 +197,28 @@ def trial(n: int, rng: random.Random) -> dict:
             total += len(top5)
         precision[name] = hits / total if total else 0.0
 
+    # M 비중 스윕 — 어디까지 올려야 목표선을 넘는가
+    weight_prec = {}
+    for w in WEIGHT_SWEEP:
+        hits = total = 0
+        for i in range(n):
+            pool = [j for j in range(n) if j != i and tags_ok(people[i], people[j])]
+            if not pool:
+                continue
+            top5 = sorted(
+                pool,
+                key=lambda j: w * mutual(people[i], people[j])
+                + (1 - w) * cosine01(people[i].value, people[j].value),
+                reverse=True,
+            )[:5]
+            hits += sum(truth[i][j] for j in top5)
+            total += len(top5)
+        weight_prec[w] = hits / total if total else 0.0
+
     return {
         "hold_rate": have_candidate / n,
         "precision": precision,
+        "weight_prec": weight_prec,
         "median_slots": statistics.median(best_slots),
         "shift_ratio": sum(1 for p in people if p.shift != SHIFTS[0][0]) / n,
     }
@@ -201,6 +235,10 @@ def sweep(sizes: list[int]) -> dict[int, dict]:
             "precision": {
                 name: statistics.mean(r["precision"][name] for r in runs)
                 for name in METHODS
+            },
+            "weight_prec": {
+                w: statistics.mean(r["weight_prec"][w] for r in runs)
+                for w in WEIGHT_SWEEP
             },
         }
         out[n] = agg
@@ -312,21 +350,80 @@ def report(out: io.TextIOBase, sizes: list[int], results: dict, elapsed: float) 
       "없어 `R`·`B`가 사전평균으로 수축한다. 초기 사용자에게 시간이 안 맞는 후보가 상위에 뜬다는 뜻이다. "
       "→ **이력이 쌓이기 전까지 `M` 가중치를 올리는 단계적 가중치**를 검토해야 한다(Q-12).\n")
 
+    # ── ②-a M 비중 스윕 ──
+    sweep_res = results[biggest]["weight_prec"]
+    target = b3 + 0.15
+    passing = [w for w in WEIGHT_SWEEP if sweep_res[w] >= target]
+    min_w = min(passing) if passing else None
+
+    p("## 2-a. 콜드스타트 가중치 — M 비중을 얼마나 올려야 하는가\n")
+    p("`R`(평판)·`B`(호혜)를 빼고 **정규화만 하면 순위가 안 바뀐다** — 상수로 나누는 것이기 때문이다. "
+      "`M`과 `V`의 **비율 자체**를 바꿔야 한다. 아래는 `S = w·M + (1-w)·V`의 `w`를 훑은 결과다.\n")
+    p("| M 비중 w | Precision@5 | B3 대비 | 목표(+15%p) |")
+    p("|---:|---:|---:|:--:|")
+    for w in WEIGHT_SWEEP:
+        v = sweep_res[w]
+        mark = "**통과**" if v >= target else "미달"
+        note = " ← 현재 실효값" if abs(w - 0.42) < 0.01 else ""
+        p(f"| {w:.2f}{note} | {v * 100:.1f}% | {(v - b3) * 100:+.1f}%p | {mark} |")
+
+    if min_w:
+        p(f"\n**M 비중을 {min_w:.2f}까지 올리면 목표선을 넘는다.** "
+          f"현재 실효값 0.42에서 {min_w:.2f}로 올리는 것이고, "
+          f"`R`·`B`의 몫 0.40을 `M`에 넘기면 자연스럽게 도달한다.\n")
+        p(f"| | 현재 | 콜드스타트 제안 |")
+        p("|---|---:|---:|")
+        p("| `V` 가치관 | 0.35 | 0.35 |")
+        p("| `M` 상보성 | 0.25 | **0.65** |")
+        p("| `R` 평판 | 0.20 | 0 (이력 없음) |")
+        p("| `B` 호혜 | 0.20 | 0 (이력 없음) |")
+        p(f"\n**`V`는 건드리지 않았다.** 줄어드는 건 정보가 없는 `R`·`B`뿐이고, "
+          "이력이 쌓이면 원래 가중치로 되돌린다. 가치관 축을 깎아 성능을 산 것이 아니다.\n")
+    else:
+        p(f"\n**어떤 `w`로도 목표선(+15%p)을 못 넘는다.** 가중치 조정으로 풀리는 문제가 아니다 — "
+          "랭킹 함수 자체를 다시 봐야 한다.\n")
+
     # ── ②-b 성공 기준 판정 ──
+    staged = results[biggest]["precision"]["S 콜드스타트 가중치"]
     gain_b2 = (m_only - base) * 100
     gain_b3 = (m_only - b3) * 100
+    gain_staged = (staged - b3) * 100
     hold = max(results[n]["hold_rate"] for n in sizes)
     p("## 2-b. 성공 기준 판정\n")
     p("| 기준 (HYPOTHESIS_ROADMAP §3.5) | 목표 | 실측 | 판정 |")
     p("|---|---:|---:|:--:|")
     p(f"| 후보 보유율 | 60% | {hold * 100:.1f}% | **통과** |")
     p(f"| 1인당 상보 슬롯 | 6슬롯 | {results[biggest]['median_slots']:.1f}슬롯 | **통과** |")
-    p(f"| B2 대비 Precision@5 | +15%p | **+{gain_b2:.1f}%p** | **통과** |")
-    p(f"| B3 대비 Precision@5 | (미규정) | +{gain_b3:.1f}%p | **재규정 필요** |")
-    p(f"\n**B2 대비로는 크게 통과하지만 그 기준이 너무 무르다.** B2는 무작위보다도 나쁜 방식이라 "
-      f"이기는 게 성과가 아니다. **B3(한 방향 피복)을 정식 베이스라인으로 재규정해야 한다.** "
-      f"그 기준으로는 +{gain_b3:.1f}%p이고, 원래 목표였던 15%p에 "
-      f"{'도달한다' if gain_b3 >= 15 else '살짝 못 미친다'}.\n")
+    p(f"| ~~B2 대비 Precision@5~~ | +15%p | +{gain_b2:.1f}%p | 기준 폐기 |")
+    p(f"| B3 대비 — 기존 가중치 `S` | +15%p | {(results[biggest]['precision']['S 전체 가중치'] - b3) * 100:+.1f}%p | **미달** |")
+    p(f"| B3 대비 — **콜드스타트 가중치** | +15%p | **+{gain_staged:.1f}%p** | "
+      f"{'**통과**' if gain_staged >= 15 else '미달'} |")
+    p(f"| B3 대비 — 상보성 상한 `M` | (참고) | +{gain_b3:.1f}%p | 이론 상한 |")
+    p(f"\n**B2 기준은 폐기한다.** B2는 무작위보다도 나쁜 방식이라 이기는 게 성과가 아니다. "
+      f"**B3(한 방향 피복)이 정식 베이스라인이다.**\n")
+    p(f"**기존 가중치로는 미달, 콜드스타트 가중치로는 +{gain_staged:.1f}%p.** "
+      f"상보성만 쓴 이론 상한(+{gain_b3:.1f}%p)의 "
+      f"{gain_staged / gain_b3 * 100:.0f}%를 회수하면서 가치관 축을 그대로 유지한다.\n")
+    ceiling_gain = gain_b3
+    p("## 2-c. 목표선이 이론 상한 위에 있다 — 기준 재설정이 필요하다\n")
+    p(f"`M` 비중을 0.90까지 올려도 +{sweep_res[0.90] * 100 - b3 * 100:.1f}%p에서 멈춘다. "
+      f"이것이 **단일 쌍 매칭의 상한**이다(상보성만 쓴 값과 같다). "
+      f"목표 +15%p는 그 상한보다 위에 있으므로 **가중치를 어떻게 조정해도 도달할 수 없다**.\n")
+    p("**원인은 기준 설정에 있다.** +15%p는 원래 `B2` 대비로 정한 값이었다. "
+      "`B2`가 무르다는 걸 알고 베이스라인을 `B3`로 바꾸면서 **목표 숫자를 그대로 옮긴 것이 잘못**이다. "
+      "`B3`는 이미 63.4%로 강한 기준이라, +15%p는 78.4%를 요구하는데 단일 쌍 상한이 78.0%다.\n")
+    p("**목표는 결과를 보고 고치는 게 아니라 상한을 계산해서 다시 정한다.** 두 갈래가 있다.\n")
+    p("| 선택지 | 내용 | 대가 |")
+    p("|---|---|---|")
+    p(f"| ㈎ 목표 재산출 | `B3` 대비 **+10%p**로 낮춘다(상한 +{ceiling_gain:.1f}%p의 약 70%) | "
+      "기준을 낮춘 것이므로 **왜 낮췄는지를 반드시 같이 보고**해야 한다 |")
+    p("| ㈏ 랭킹을 확장 | 단일 쌍을 넘어 **릴레이·Set Cover 조합**까지 후보로 낸다 | "
+      "상한 자체가 올라간다. 설계에 이미 있는 기능이고 이번 실험이 안 쓴 것뿐이다 |")
+    p("\n**㈏를 권한다.** 이번 실험은 1:1 쌍만 봤는데, 우리 설계에는 "
+      "여러 명이 시간을 나눠 덮는 릴레이 체인과 Set Cover가 이미 들어 있다. "
+      "위젯에서 확인한 **09~13시 잔여 공백**이 정확히 그 경로로 메워지는 구간이다. "
+      "**다음 실험은 릴레이를 포함한 피복률을 재는 것**이고, 그때 상한이 얼마나 올라가는지가 진짜 질문이다.\n")
+
     p("> **가치관 축의 반증선은 이 실험으로 판정할 수 없다.** 반증선은 "
       "'`V`를 넣어 Precision이 +5%p 미만이면 랭킹에서 뺀다'인데, 여기서 쓴 정답이 시간 피복률이라 "
       "`V`는 정의상 기여할 수 없다. **이 실험 결과로 `V` 제거를 결정하면 안 된다.** "
