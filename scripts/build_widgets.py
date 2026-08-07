@@ -252,44 +252,60 @@ def widget_density() -> tuple[str, int, str]:
     return "".join(b), 518, "임계 밀도 곡선과 지역별 필요 모집 비율"
 
 
-# ── 위젯 5 · 지표를 왜 바꿨나 ────────────────────────────────────────────
+# ── 위젯 5 · 지표를 바꾸자 순위가 뒤집혔다 (실측) ───────────────────────
+OLD_RANK = [
+    ("1", "M 상보성만", "78.0%", "amber"),
+    ("2", "S 콜드스타트", "71.5%", "gray"),
+    ("3", "B3 한 방향 피복", "63.4%", "gray"),
+    ("4", "S 전체 가중치", "54.8%", "gray"),
+    ("5", "B0 무작위", "16.6%", "gray"),
+    ("6", "B2 단순 시간 겹침", "0.5%", "gray"),
+    ("—", "조합 인지 선정", "측정 불가", "teal"),
+]
+NEW_RANK = [
+    ("1", "조합 인지 선정", "78.6%", "teal"),
+    ("2", "S 전체 가중치", "76.8%", "gray"),
+    ("3", "B3 한 방향 피복", "70.2%", "gray"),
+    ("4", "B0 무작위", "69.8%", "gray"),
+    ("5", "S 콜드스타트", "69.7%", "gray"),
+    ("6", "M 상보성만", "67.1%", "amber"),
+    ("7", "B2 단순 시간 겹침", "25.4%", "gray"),
+]
+
+
+def _rank_row(x: int, y: int, rank: str, name: str, val: str, ramp: str) -> str:
+    cls = "th" if ramp != "gray" else "ts"
+    cy = y + 18
+    return (f'<g class="c-{ramp}"><rect x="{x}" y="{y}" width="250" height="36" rx="4" '
+            f'stroke-width="0.5"/>'
+            f'<text class="{cls}" x="{x + 16}" y="{cy}" dominant-baseline="central">{rank}</text>'
+            f'<text class="{cls}" x="{x + 40}" y="{cy}" dominant-baseline="central">{name}</text>'
+            f'<text class="{cls}" x="{x + 234}" y="{cy}" text-anchor="end" '
+            f'dominant-baseline="central">{val}</text></g>')
+
+
 def widget_metric_change() -> tuple[str, int, str]:
-    def seg(y, x, w, ramp):
-        return (f'<rect class="seg c-{ramp}" x="{x}" y="{y}" width="{w}" height="24" '
-                f'rx="2" stroke-width="0.5"/>')
-
     b = [
-        label(50, 44, "제안 A · 상위 5명 중 3명이 &#39;성사 가능&#39; · Precision@5 = 60%"),
-        '<rect class="box" x="50" y="56" width="576" height="24" rx="4" stroke-width="0.5"/>',
-        seg(56, 50, 86, "amber"), seg(56, 194, 58, "amber"), seg(56, 396, 115, "amber"),
-        '<text class="ts" x="50" y="94" dominant-baseline="central">'
-        '조합하면 근무 시간의 45%만 덮인다 — 절반 이상이 빈 채로 남는다</text>',
-
-        label(50, 124, "제안 B · 상위 5명 중 3명이 &#39;성사 가능&#39; · Precision@5 = 60%"),
-        '<rect class="box" x="50" y="136" width="576" height="24" rx="4" stroke-width="0.5"/>',
-        seg(136, 50, 259, "teal"), seg(136, 321, 271, "teal"),
-        '<text class="ts" x="50" y="174" dominant-baseline="central">'
-        '조합하면 92%가 덮인다 — 남는 건 짧은 한 구간뿐</text>',
-
-        down(340, 190, 210),
-        box(50, 218, 580, 64, "red", [
-            "같은 점수, 전혀 다른 현실",
-            "맞힌 사람 수만 세면 45%와 92%가 동점이 된다",
-        ]),
-        box(50, 306, 180, 76, "gray", [
-            "릴레이는 조합이다", "순위 지표가 안 맞는다", "누가 아니라 무엇을 덮나"]),
-        box(250, 306, 180, 76, "gray", [
-            "정도를 못 잰다", "맞았나 틀렸나 둘뿐", "45%와 92%가 동점"]),
-        box(450, 306, 180, 76, "gray", [
-            "호혜가 안 보인다", "받기만 해도 만점", "관계 지속을 못 본다"]),
-        box(50, 396, 580, 64, "teal", [
-            "새 지표 — 피복률@5 와 호혜 충족률을 함께",
-            "얼마나 덮었는가, 그리고 그만큼 되갚을 수 있는가"]),
-        legend(480, [
-            (62, "teal", "덮인 시간"), (164, "amber", "덮였지만 부족"),
-            (290, "red", "지표의 결함")]),
+        '<text class="th" x="175" y="56" text-anchor="middle" '
+        'dominant-baseline="central">Precision@5 · 옛 지표</text>',
+        '<text class="th" x="505" y="56" text-anchor="middle" '
+        'dominant-baseline="central">피복률@5 · 새 지표</text>',
     ]
-    return "".join(b), 502, "Precision@5를 피복률@5로 바꾼 이유"
+    for i, row in enumerate(OLD_RANK):
+        b.append(_rank_row(50, 80 + i * 44, *row))
+    for i, row in enumerate(NEW_RANK):
+        b.append(_rank_row(380, 80 + i * 44, *row))
+
+    b.append('<path d="M304 98 L340 98 L340 318 L376 318" fill="none" stroke="#BA7517" '
+             'stroke-width="1.5" marker-end="url(#arrow)"/>')
+    b.append('<path d="M304 362 L352 362 L352 98 L376 98" fill="none" stroke="#1D9E75" '
+             'stroke-width="1.5" marker-end="url(#arrow)"/>')
+    b.append(box(50, 404, 580, 76, "red", [
+        "같은 방법이 1위에서 6위로 — 지표가 결론을 바꾼다",
+        "M은 상위 5명이 서로 중복돼 조합하면 못 덮는데, 옛 지표는 그걸 못 본다",
+        "조합 인지 선정은 순위를 안 내놓아 옛 지표로는 측정 자체가 안 된다",
+    ]))
+    return "".join(b), 520, "지표를 바꾸자 순위가 뒤집혔다 — 실측값 비교"
 
 # ── 위젯 6 · 피복률@5 대 호혜 충족률 ─────────────────────────────────────
 TWO_AXIS = [
