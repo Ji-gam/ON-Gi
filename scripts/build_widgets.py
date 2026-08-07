@@ -211,10 +211,91 @@ def widget_stack() -> tuple[str, int, str]:
     return "".join(b), 420, "기술 스택과 검증 근거의 대응"
 
 
+# ── 위젯 4 · 임계 밀도 곡선 + 지역 대입 ──────────────────────────────────
+DENSITY = [(10, 40.7), (20, 60.2), (30, 71.0), (50, 79.0), (80, 83.7), (120, 83.9)]
+REGIONS = [("강남구", "0.40%"), ("성동구", "0.49%"), ("동작구", "0.51%"), ("마포구", "0.55%")]
+BASE_Y, SCALE = 280, 2.2   # 0% 기준선과 1%p당 픽셀
+
+
+def widget_density() -> tuple[str, int, str]:
+    b = []
+    for pct, text in ((83.9, "천장 84% — 더 모아도 안 오른다"), (60.0, "60% 성공 기준")):
+        y = round(BASE_Y - pct * SCALE)
+        b.append(f'<line x1="90" y1="{y}" x2="630" y2="{y}" stroke="#888780" '
+                 f'stroke-width="0.5" stroke-dasharray="4 4"/>')
+        b.append(f'<text class="ts" x="100" y="{y - 9}" dominant-baseline="central">{text}</text>')
+
+    for i, (n, pct) in enumerate(DENSITY):
+        x = 100 + i * 90
+        h = round(pct * SCALE)
+        ramp = "teal" if pct >= 60 else "gray"
+        b.append(f'<g class="c-{ramp}"><rect x="{x}" y="{BASE_Y - h}" width="60" height="{h}" '
+                 f'rx="4" stroke-width="0.5"/></g>')
+        b.append(f'<text class="ts" x="{x + 30}" y="{BASE_Y - h - 9}" text-anchor="middle" '
+                 f'dominant-baseline="central">{pct}%</text>')
+        b.append(f'<text class="ts" x="{x + 30}" y="296" text-anchor="middle" '
+                 f'dominant-baseline="central">{n}</text>')
+
+    b.append(f'<line x1="90" y1="{BASE_Y}" x2="630" y2="{BASE_Y}" stroke="#888780" stroke-width="0.5"/>')
+    b.append('<text class="ts" x="355" y="316" text-anchor="middle" '
+             'dominant-baseline="central">한 지역에 모인 가구 수</text>')
+
+    b.append(box(50, 340, 280, 64, "teal", ["임계 밀도 20가구", "이 규모부터 60%를 넘는다"]))
+    b.append(box(350, 340, 280, 64, "gray", ["천장 84%의 정체", "주간 고정끼리는 서로 못 채운다"]))
+    b.append(label(50, 428, "실제 지역에 대입 — 이용가구 중 몇 %를 모으면 되는가"))
+    for i, (name, ratio) in enumerate(REGIONS):
+        b.append(box(50 + i * 146, 440, 138, 44, "purple", [name, ratio]))
+    b.append(legend(504, [
+        (62, "teal", "기준 통과"), (164, "gray", "기준 미달"),
+        (266, "purple", "공공데이터 실측 이용가구 기준"),
+    ]))
+    return "".join(b), 518, "임계 밀도 곡선과 지역별 필요 모집 비율"
+
+
+# ── 위젯 5 · 방법 비교와 판정 ────────────────────────────────────────────
+BARS = [
+    ("B2 단순 시간 겹침", 0.5, "red", "0.5%  — 무작위보다 낮다"),
+    ("B0 무작위", 16.6, "gray", "16.6%"),
+    ("S 전체 가중치", 54.8, "amber", "54.8%"),
+    ("B3 한 방향 피복", 63.4, "gray", "63.4%  ← 정식 베이스라인"),
+    ("M 상보성 양방향", 78.0, "teal", "78.0%  ← 우리 방식"),
+]
+
+
+def widget_precision() -> tuple[str, int, str]:
+    b = []
+    for i, (name, pct, ramp, note) in enumerate(BARS):
+        y = 40 + i * 48
+        w = max(2, round(pct * 3.6))
+        b.append(f'<text class="th" x="210" y="{y + 16}" text-anchor="end" '
+                 f'dominant-baseline="central">{name}</text>')
+        b.append(f'<g class="c-{ramp}"><rect x="220" y="{y}" width="{w}" height="32" '
+                 f'rx="2" stroke-width="0.5"/></g>')
+        b.append(f'<text class="ts" x="{234 + w}" y="{y + 16}" '
+                 f'dominant-baseline="central">{note}</text>')
+
+    b.append('<line x1="220" y1="278" x2="580" y2="278" stroke="#888780" stroke-width="0.5"/>')
+    for x, t in ((220, "0"), (400, "50%"), (580, "100%")):
+        b.append(f'<text class="ts" x="{x}" y="294" text-anchor="middle" '
+                 f'dominant-baseline="central">{t}</text>')
+
+    b.append(box(50, 318, 580, 64, "amber", [
+        "판정 — B3 대비 +14.6%p · 목표 15%p에 근소 미달",
+        "B2 대비 +77.5%p는 의미 없다. 무작위보다 나쁜 방식을 이긴 것뿐이다",
+    ]))
+    b.append(box(50, 394, 580, 64, "gray", [
+        "S 전체가 M보다 낮은 이유 — 콜드스타트",
+        "신규 가입자는 평판·호혜 이력이 없어 가치관이 상보성보다 1.4배 세진다",
+    ]))
+    return "".join(b), 470, "Precision@5 베이스라인 비교와 성공 기준 판정"
+
+
 WIDGETS = {
     "01-matching-pipeline": widget_matching,
     "02-hypothesis-revision": widget_hypothesis,
     "03-stack-validation": widget_stack,
+    "04-density-curve": widget_density,
+    "05-precision-verdict": widget_precision,
 }
 
 
