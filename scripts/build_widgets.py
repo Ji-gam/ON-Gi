@@ -49,6 +49,7 @@ def _style() -> str:
         "rect.seg.c-teal{fill:#9FE1CB}",
         "rect.seg.c-coral{fill:#F5C4B3}",
         "rect.seg.c-gray{fill:#D3D1C7}",
+        "rect.seg.c-amber{fill:#FAC775}",
     ]
     for name, (fill, stroke, title, sub) in RAMPS.items():
         c = f".c-{name}"
@@ -125,12 +126,13 @@ def legend(y: int, items: list[tuple[int, str, str]]) -> str:
 def widget_matching() -> tuple[str, int, str]:
     b = [
         box(50, 40, 580, 44, "gray", ["근무표 PDF·엑셀 → PyMuPDF·LLM 파싱 → 48슬롯 비트마스크"]),
-        label(50, 104, "간호사 A · 주간조 07:00~15:00"),
-        strip(114, [(0, 12, "gray"), (46, 2, "gray"), (14, 16, "teal")]),
-        label(50, 158, "소방관 B · 저녁조 15:00~23:00"),
-        strip(168, [(0, 14, "gray"), (30, 16, "coral")]),
-        label(50, 212, "서로 맡아줄 수 있는 구간 · BIT(48) AND 연산 → 각 16슬롯 8시간"),
-        strip(222, [(14, 16, "coral"), (30, 16, "teal")], grid=False),
+        label(50, 104, "간호사 A · 3교대 야간조 22:00~06:00 · 근무 후 수면 07~13시"),
+        strip(114, [(0, 12, "teal"), (44, 4, "teal"), (14, 12, "gray")]),
+        label(50, 158, "소방관 B · 2교대 주간 09:00~21:00 (12시간) · 수면 23~07시"),
+        strip(168, [(18, 24, "coral"), (0, 14, "gray"), (46, 2, "gray")]),
+        label(50, 212, "BIT(48) AND → A가 8시간 · B가 8시간(밤샘) · 남는 4시간은 릴레이"),
+        strip(222, [(0, 12, "coral"), (44, 4, "coral"), (26, 16, "teal"), (18, 8, "amber")],
+              grid=False),
     ]
     for x, t in ((50, "00"), (146, "04"), (242, "08"), (338, "12"), (434, "16"), (530, "20"), (626, "24")):
         b.append(f'<text class="ts" x="{x}" y="262" text-anchor="middle" dominant-baseline="central">{t}</text>')
@@ -150,11 +152,11 @@ def widget_matching() -> tuple[str, int, str]:
     b.append(down(340, 462, 476))
     b.append(box(50, 482, 580, 64, "purple", [
         "매칭 확정 + 근거 문장 자동 생성",
-        "1km 안 · 근무가 정확히 엇갈리고 · 알레르기 대응이 되며 · 양육관이 가깝다",
+        "1km 안 · 낮 8시간은 A가, 밤 8시간은 B가 · 알레르기 대응 · 양육관 근접",
     ]))
     b.append(legend(568, [
-        (62, "teal", "간호사 A"), (152, "coral", "소방관 B"), (242, "gray", "수면·선택 태그"),
-        (372, "red", "완화 불가 태그"), (502, "purple", "가치관 축"),
+        (62, "teal", "간호사 A"), (152, "coral", "소방관 B"), (242, "gray", "수면"),
+        (300, "amber", "릴레이 필요"), (400, "red", "완화 불가 태그"), (524, "purple", "가치관 축"),
     ]))
     return "".join(b), 588, "품앗이온 매칭 전 과정 — 근무표 파싱부터 가치관 유사도까지"
 

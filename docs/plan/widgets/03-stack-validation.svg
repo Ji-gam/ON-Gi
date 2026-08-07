@@ -8,6 +8,7 @@
 rect.seg.c-teal{fill:#9FE1CB}
 rect.seg.c-coral{fill:#F5C4B3}
 rect.seg.c-gray{fill:#D3D1C7}
+rect.seg.c-amber{fill:#FAC775}
 .c-gray>rect,.c-gray>circle,rect.c-gray,circle.c-gray{fill:#F1EFE8;stroke:#5F5E5A}
 .c-gray>.th{fill:#444441}
 .c-gray>.ts{fill:#5F5E5A}
