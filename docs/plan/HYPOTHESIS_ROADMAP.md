@@ -217,7 +217,7 @@
 
 ### 실측 결과 — 3종 수집 완료 (2026-08-07)
 
-인증키를 받아 실제로 호출했다. 전문은 [DATA_FINDINGS.md](DATA_FINDINGS.md), 재현은 `scripts/fetch_care_data.py` → `scripts/analyze_care_data.py`.
+인증키를 받아 실제로 호출했다. 전문은 [DATA_FINDINGS.md](DATA_FINDINGS.md), **이 데이터로 말하면 안 되는 것은 [DATA_LIMITS.md](DATA_LIMITS.md)**, 재현은 `scripts/fetch_care_data.py` → `scripts/analyze_care_data.py`.
 
 수집 범위 **2020-01 ~ 2026-02 (74개월, 기관 232곳)**. 셋 다 정상 응답.
 
