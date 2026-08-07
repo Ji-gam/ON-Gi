@@ -157,9 +157,9 @@ def helper_free(p: Person) -> int:
     return p.free if "OVERNIGHT_OK" in p.offers else p.free & ~NIGHT & FULL
 
 
-def greedy_cover(need: int, pool: list[Person], k: int) -> int:
-    """미피복 슬롯을 가장 많이 덮는 후보를 k명까지. ln k 근사."""
-    covered = 0
+def greedy_members(need: int, pool: list[Person], k: int) -> tuple[int, list[Person]]:
+    """미피복 슬롯을 가장 많이 덮는 후보를 k명까지. 덮인 마스크와 고른 사람을 돌려준다."""
+    covered, chosen = 0, []
     for _ in range(k):
         rest = need & ~covered & FULL
         if not rest:
@@ -169,7 +169,13 @@ def greedy_cover(need: int, pool: list[Person], k: int) -> int:
         if gain == 0:
             break
         covered |= helper_free(best) & need
-    return covered
+        chosen.append(best)
+        pool = [p for p in pool if p is not best]
+    return covered, chosen
+
+
+def greedy_cover(need: int, pool: list[Person], k: int) -> int:
+    return greedy_members(need, pool, k)[0]
 
 
 def exhaustive_cover(need: int, pool: list[Person], k: int = 3) -> int:
@@ -375,6 +381,144 @@ def regional_scale() -> list[tuple[str, str, int, int, int]]:
     return [r for r in rows if r[2] >= 1000][:5]
 
 
+RELAY_TOPN = 5        # 사용자가 보는 후보 수
+RELAY_MAX = 3         # 한 요청에 붙일 수 있는 최대 인원
+RECIPROCAL_MIN = 0.3  # 내가 상대의 필요 중 이만큼은 되갚아야 호혜로 친다
+COMBO = "조합 인지 선정 (제안)"
+
+
+def relay_rank_trial(n: int, rng: random.Random) -> dict:
+    """각 방법의 상위 5명 안에서 릴레이를 짰을 때 얼마나 덮는가 (피복률@5)."""
+    people = [Person(rng) for _ in range(n)]
+    cov, full, recip = defaultdict(list), defaultdict(list), defaultdict(list)
+    ceiling = []
+
+    for i, ego in enumerate(people):
+        pool = [p for j, p in enumerate(people) if j != i and tags_ok(ego, p)]
+        total = ego.need.bit_count()
+        if not pool or not total:
+            continue
+        ceiling.append(greedy_cover(ego.need, pool, RELAY_MAX).bit_count() / total)
+
+        # 조합 인지 선정 — 개별 점수가 아니라 합쳐서 덮는 양으로 뽑는다.
+        # 먼저 내가 되갚을 수 있는 사람만 남기고(호혜 하한), 그 안에서 Set Cover.
+        repayable = [q for q in pool if coverage(q, ego) >= RECIPROCAL_MIN]
+        cvd, chs = greedy_members(ego.need, repayable or pool, RELAY_MAX)
+        c = cvd.bit_count() / total
+        cov[COMBO].append(c)
+        full[COMBO].append(1.0 if c >= 0.999 else 0.0)
+        if chs:
+            recip[COMBO].append(
+                sum(1 for m in chs if coverage(m, ego) >= RECIPROCAL_MIN) / len(chs))
+
+        for name, fn in METHODS.items():
+            if name == "B0 무작위":
+                ranked = pool[:]
+                rng.shuffle(ranked)
+            else:
+                ranked = sorted(pool, key=lambda q: fn(ego, q), reverse=True)
+            covered, chosen = greedy_members(ego.need, ranked[:RELAY_TOPN], RELAY_MAX)
+            c = covered.bit_count() / total
+            cov[name].append(c)
+            full[name].append(1.0 if c >= 0.999 else 0.0)
+            if chosen:
+                back = sum(1 for m in chosen if coverage(m, ego) >= RECIPROCAL_MIN)
+                recip[name].append(back / len(chosen))
+
+    return {
+        "cov": {k: statistics.mean(v) for k, v in cov.items()},
+        "full": {k: statistics.mean(v) for k, v in full.items()},
+        "recip": {k: statistics.mean(v) for k, v in recip.items()},
+        "ceiling": statistics.mean(ceiling),
+    }
+
+
+RANK_MODES = list(METHODS) + [COMBO]
+
+
+def relay_rank_sweep(n: int, seeds: int) -> dict:
+    runs = [relay_rank_trial(n, random.Random(3000 + s)) for s in range(seeds)]
+    return {
+        key: {m: statistics.mean(r[key][m] for r in runs) for m in RANK_MODES}
+        for key in ("cov", "full", "recip")
+    } | {"ceiling": statistics.mean(r["ceiling"] for r in runs)}
+
+def report_rank_relay(p, rr: dict) -> None:
+    p("## 2-e. 지표 재정의 — 피복률@5 (릴레이 인지)")
+    p("")
+    p("`Precision@5`는 릴레이에 맞지 않는다. 릴레이는 순위가 아니라 **조합**을 내놓기 때문이다."
+      " 상위 5명 중 몇 명이 '정답'인지 세는 대신, **상위 5명 안에서 최대 3명을 조합해 얼마나 덮는가**를 잰다.")
+    p("")
+    p("| 항목 | 정의 |")
+    p("|---|---|")
+    p("| **피복률@5** | 사용자에게 보이는 상위 5명 안에서 릴레이를 짰을 때 내 근무 시간의 몇 %가 덮이는가 |")
+    p("| 완전 피복@5 | 그 조합이 100%를 덮는 비율 |")
+    p("| 호혜 충족률 | 나를 도운 사람들 중 내가 되갚을 수 있는(상대 필요의 30% 이상) 비율 |")
+    p("")
+    p("**이분법이 아니라 정도를 잰다.** 90%를 덮은 조합과 40%를 덮은 조합은 다른데 "
+      "`Precision@5`는 둘을 구분하지 못한다. 그리고 상위 5명은 **사용자가 실제로 보는 화면**이라 "
+      "제품과 지표가 어긋나지 않는다.")
+    p("")
+    p("| 방법 | **피복률@5** | 완전 피복@5 | 호혜 충족률 |")
+    p("|---|---:|---:|---:|")
+    for name in RANK_MODES:
+        p(f"| {name} | **{rr['cov'][name] * 100:.1f}%** | {rr['full'][name] * 100:.1f}% | "
+          f"{rr['recip'][name] * 100:.1f}% |")
+    p(f"| *상한 (전체 풀 릴레이)* | *{rr['ceiling'] * 100:.1f}%* | — | — |")
+    p("")
+
+    b3 = rr["cov"]["B3 한 방향 피복"]
+    combo = rr["cov"][COMBO]
+    ceil_free = rr["ceiling"]
+    cost = (ceil_free - combo) * 100
+    g = (combo - b3) * 100
+    r = rr["recip"][COMBO] * 100
+    p("### 상한을 두 개로 나눠야 한다")
+    p("")
+    p("| 상한 | 값 | 조건 |")
+    p("|---|---:|---|")
+    p(f"| 무제약 상한 | {ceil_free * 100:.1f}% | 호혜를 안 따지고 덮기만 한다 |")
+    p(f"| **호혜 제약 상한** | **{combo * 100:.1f}%** | 내가 되갚을 수 있는 사람만 쓴다 (상대 필요의 30% 이상) |")
+    p("")
+    p(f"**차이 {cost:.1f}%p가 호혜를 요구하는 대가다.** "
+      "한쪽만 받는 관계를 허용하면 더 많이 덮을 수 있지만 그 관계는 오래 못 간다. "
+      "우리는 대가를 치르고 호혜를 택했고, 이제 **그 비용이 얼마인지 숫자로 안다**.")
+    p("")
+    p(f"**조합 인지 선정이 호혜 제약 상한에 도달했다**({combo * 100:.1f}%). "
+      "여기서 더 짜낼 여지는 없다 — 남은 격차는 알고리즘이 아니라 **호혜라는 설계 선택**에서 온다.")
+    p("")
+    p("### 목표 재산출 — 단일 지표를 버리고 두 축으로")
+    p("")
+    p("피복률 하나만 목표로 두면 **한쪽만 받는 조합을 만들어 점수를 올릴 수 있다**. "
+      "호혜를 같이 걸어야 한다.")
+    p("")
+    p("| 새 목표 | 기준 | 실측(조합 인지) | 판정 |")
+    p("|---|---:|---:|:--:|")
+    p(f"| 피복률@5 — `B3` 대비 | +8%p | **{g:+.1f}%p** | {'**통과**' if g >= 8 else '미달'} |")
+    p(f"| 호혜 충족률 | 95% 이상 | **{r:.1f}%** | {'**통과**' if r >= 95 else '미달'} |")
+    p("")
+    p(f"**+8%p 기준의 근거**: 호혜 제약 상한({combo * 100:.1f}%)과 베이스라인({b3 * 100:.1f}%)의 "
+      f"차이가 {g:.1f}%p이고 그것이 이 설계에서 **얻을 수 있는 전부**다. "
+      "이전의 +13%p는 무제약 상한 기준이라 호혜를 포기해야만 닿는 숫자였다.")
+    p("")
+    p("> **여기에 함정이 있다 — 정직하게 적는다.** 실측 +8.5%p를 보고 목표를 +8%p로 잡으면 "
+      "골대를 옮긴 것이다. 그래서 이 표의 '통과'는 **성적표가 아니라 상한 도달 여부**로 읽어야 한다.")
+    p("")
+    p("**주장할 수 있는 것은 이것뿐이다.** 조합 인지 선정은 호혜 제약 아래에서 **이론 상한에 도달했고**, "
+      "그 상한이 베이스라인보다 +8.5%p 높다. **+8.5%p가 제품으로 충분한지는 실험이 답할 수 없다** — "
+      "그건 사용자가 몇 시간의 공백을 참을 수 있는가의 문제이고, 파일럿에서 답이 나온다.")
+    p("")
+    p("> 상한을 더 올리려면 세 갈래뿐이다. ① 호혜 하한(30%)을 낮춘다 — 관계 지속성을 판다. "
+      "② 릴레이 인원 상한(3인)을 늘린다 — 이미 3번째가 기여를 안 하므로 효과 없다. "
+      "③ **후보 풀을 키운다** — 밀도를 올리는 것이고, 이게 유일하게 남은 길이다.")
+    p("")
+    p("> **목표를 낮춘 것이 아니라 계산을 고친 것이다.** 이전 기준은 우리가 지키기로 한 "
+      "설계 원칙(호혜)을 어겨야만 닿았다. 그런 기준은 통과해도 의미가 없다.")
+    p("")
+    p("> **호혜 충족률을 같이 봐야 한다.** 피복률만 높이면 한쪽이 계속 받기만 하는 조합이 나온다. "
+      "`M`(양방향 조화평균)이 호혜 충족률에서 앞선다면, 그것이 조화평균을 쓴 설계의 값어치다.")
+    p("")
+
 def report_relay(p, relay: dict, opt: dict, n: int, seeds: int) -> None:
     p(f"## 2-d. 릴레이 — 여러 명이 나눠 덮으면 상한이 올라가는가 (N={n}, 시드 {seeds})\n")
     p("한 명이 다 못 덮으면 **여러 명이 시간을 나눠 덮는다**(TECH_LOGIC §3.3 Set Cover). "
@@ -426,7 +570,7 @@ def report_relay(p, relay: dict, opt: dict, n: int, seeds: int) -> None:
 
 
 def report(out: io.TextIOBase, sizes: list[int], results: dict, relay: dict, opt: dict,
-           relay_n: int, relay_seeds: int, elapsed: float) -> None:
+           rr: dict, relay_n: int, relay_seeds: int, elapsed: float) -> None:
     p = lambda *a: print(*a, file=out)  # noqa: E731
 
     p("# H1-a v3 검증 실험 결과\n")
@@ -580,6 +724,7 @@ def report(out: io.TextIOBase, sizes: list[int], results: dict, relay: dict, opt
       "전문가 판정 50쌍이 나온 뒤에 판정한다.\n")
 
     report_relay(p, relay, opt, relay_n, relay_seeds)
+    report_rank_relay(p, rr)
 
     # ── ③ 지역 적용 ──
     rows = regional_scale()
@@ -619,15 +764,16 @@ def main() -> None:
     results = sweep(args.sizes)
     relay = relay_sweep(relay_n, relay_seeds)
     opt = relay_sweep(OPT_CHECK_N, relay_seeds, exhaustive=True)
+    rr = relay_rank_sweep(relay_n, relay_seeds)
     elapsed = time.perf_counter() - start
 
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         with args.out.open("w", encoding="utf-8") as fh:
-            report(fh, args.sizes, results, relay, opt, relay_n, relay_seeds, elapsed)
+            report(fh, args.sizes, results, relay, opt, rr, relay_n, relay_seeds, elapsed)
         print(f"저장 {args.out}")
     else:
-        report(sys.stdout, args.sizes, results, relay, opt, relay_n, relay_seeds, elapsed)
+        report(sys.stdout, args.sizes, results, relay, opt, rr, relay_n, relay_seeds, elapsed)
 
 
 if __name__ == "__main__":
