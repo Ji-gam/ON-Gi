@@ -104,8 +104,11 @@ def report(out: io.TextIOBase) -> None:
     reg = by_month(members, "rglmbrCnt")
     for ym in sorted(set(sorted(live)[::6]) | {last}):
         p(f"| {ym[:4]}-{ym[4:]} | {live[ym]:,} | {reg[ym]:,} |")
-    p(f"\n**{first[:4]}-{first[4:]} {live[first]:,}명 → {last[:4]}-{last[4:]} "
-      f"{live[last]:,}명 ({live[last] / live[first]:.1f}배)**\n")
+    seq = sorted(live)
+    ups = sum(1 for a, b in zip(seq, seq[1:]) if live[b] > live[a])
+    p(f"\n**{first[:4]}-{first[4:]} {live[first]:,}가구 → {last[:4]}-{last[4:]} "
+      f"{live[last]:,}가구 ({live[last] / live[first]:.1f}배)** — "
+      f"{len(seq) - 1}번의 월 전환 중 **{ups}번 증가**했다. 거의 한 번도 줄지 않았다.\n")
     p(f"> 한계: `stdbyRglmbrCnt`(대기 정회원)는 {LAST_WAITLIST_YM[:4]}-{LAST_WAITLIST_YM[4:]}을 "
       f"마지막으로 집계가 중단됐다. 이후 월은 0으로 채워져 있어 최신 대기 규모는 이 API로 알 수 없다.\n")
 
@@ -150,11 +153,19 @@ def report(out: io.TextIOBase) -> None:
                 p(f"| {sido} | {sgg} | {rg:,} | {w:,} | {g:,} | {shown} |")
             tw = sum(r[3] for r in rows)
             tg = sum(r[4] for r in rows)
-            p(f"\n전국 합계: 대기 {tw:,}명 / 바로 연계 가능 {tg:,}명 "
-              f"→ 대기 1명당 가용 돌보미 {tg / tw:.2f}명\n")
-            p("> 전국 평균으로는 인력이 남는다. 그런데 대기가 3년간 늘었다는 것은 "
-              "**총량 부족이 아니라 배치 실패**(시간대·지역 불일치)를 가리킨다. "
-              "야간 가용 여부는 이 API에 필드가 없어 공공데이터만으로는 확인할 수 없다.\n")
+            tr = sum(r[2] for r in rows)
+            total_sitters = sum(num(r.get("thmmSittrCnt")) for r in month_slice(sitters, ym))
+            per_sitter = tr / total_sitters if total_sitters else 0
+            p(f"\n전국 합계: 대기 {tw:,}가구 / 바로 연계 가능 {tg:,}명 "
+              f"(전체 돌보미 {total_sitters:,}명)\n")
+            p(f"> **단위가 다르다.** 대기는 가구 수, 공급은 사람 수다. "
+              f"{tw:,} ÷ {tg:,} = {tg / tw:.2f} 를 '1인당 {tg / tw:.2f}명이라 인력이 부족하다'로 "
+              f"읽으면 안 된다 — 돌보미 1명은 여러 가구를 맡는다.\n")
+            p(f"> 같은 시점 정회원 {tr:,}가구를 돌보미 {total_sitters:,}명이 감당 중 "
+              f"= **1인당 {per_sitter:.1f}가구**. 이 비율이면 바로 연계 가능한 {tg:,}명만으로도 "
+              f"대기 {tw:,}가구는 흡수됐어야 한다. **인력 총량 부족으로는 설명되지 않는다.**\n")
+            p("> 왜 안 붙는지(시간대·조건·지역 불일치)는 이 API로 갈라낼 수 없다. "
+              "야간 필드가 없기 때문이다. 원인은 설문으로 검증한다.\n")
 
     # ── ④ 좌표 확보 현황 ─────────────────────────────────────────
     geo = [r for r in orgs if (r.get("lat") or "").strip() and (r.get("lot") or "").strip()]
