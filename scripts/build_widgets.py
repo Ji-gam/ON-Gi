@@ -252,43 +252,44 @@ def widget_density() -> tuple[str, int, str]:
     return "".join(b), 518, "임계 밀도 곡선과 지역별 필요 모집 비율"
 
 
-# ── 위젯 5 · 방법 비교와 판정 ────────────────────────────────────────────
-BARS = [
-    ("B2 단순 시간 겹침", 0.5, "red", "0.5%  — 무작위보다 낮다"),
-    ("B0 무작위", 16.6, "gray", "16.6%"),
-    ("S 전체 가중치", 54.8, "amber", "54.8%"),
-    ("B3 한 방향 피복", 63.4, "gray", "63.4%  ← 정식 베이스라인"),
-    ("M 상보성 양방향", 78.0, "teal", "78.0%  ← 우리 방식"),
-]
+# ── 위젯 5 · 지표를 왜 바꿨나 ────────────────────────────────────────────
+def widget_metric_change() -> tuple[str, int, str]:
+    def seg(y, x, w, ramp):
+        return (f'<rect class="seg c-{ramp}" x="{x}" y="{y}" width="{w}" height="24" '
+                f'rx="2" stroke-width="0.5"/>')
 
+    b = [
+        label(50, 44, "제안 A · 상위 5명 중 3명이 &#39;성사 가능&#39; · Precision@5 = 60%"),
+        '<rect class="box" x="50" y="56" width="576" height="24" rx="4" stroke-width="0.5"/>',
+        seg(56, 50, 86, "amber"), seg(56, 194, 58, "amber"), seg(56, 396, 115, "amber"),
+        '<text class="ts" x="50" y="94" dominant-baseline="central">'
+        '조합하면 근무 시간의 45%만 덮인다 — 절반 이상이 빈 채로 남는다</text>',
 
-def widget_precision() -> tuple[str, int, str]:
-    b = []
-    for i, (name, pct, ramp, note) in enumerate(BARS):
-        y = 40 + i * 48
-        w = max(2, round(pct * 3.6))
-        b.append(f'<text class="th" x="210" y="{y + 16}" text-anchor="end" '
-                 f'dominant-baseline="central">{name}</text>')
-        b.append(f'<g class="c-{ramp}"><rect x="220" y="{y}" width="{w}" height="32" '
-                 f'rx="2" stroke-width="0.5"/></g>')
-        b.append(f'<text class="ts" x="{234 + w}" y="{y + 16}" '
-                 f'dominant-baseline="central">{note}</text>')
+        label(50, 124, "제안 B · 상위 5명 중 3명이 &#39;성사 가능&#39; · Precision@5 = 60%"),
+        '<rect class="box" x="50" y="136" width="576" height="24" rx="4" stroke-width="0.5"/>',
+        seg(136, 50, 259, "teal"), seg(136, 321, 271, "teal"),
+        '<text class="ts" x="50" y="174" dominant-baseline="central">'
+        '조합하면 92%가 덮인다 — 남는 건 짧은 한 구간뿐</text>',
 
-    b.append('<line x1="220" y1="278" x2="580" y2="278" stroke="#888780" stroke-width="0.5"/>')
-    for x, t in ((220, "0"), (400, "50%"), (580, "100%")):
-        b.append(f'<text class="ts" x="{x}" y="294" text-anchor="middle" '
-                 f'dominant-baseline="central">{t}</text>')
-
-    b.append(box(50, 318, 580, 64, "amber", [
-        "판정 — B3 대비 +14.6%p · 목표 15%p에 근소 미달",
-        "B2 대비 +77.5%p는 의미 없다. 무작위보다 나쁜 방식을 이긴 것뿐이다",
-    ]))
-    b.append(box(50, 394, 580, 64, "gray", [
-        "S 전체가 M보다 낮은 이유 — 콜드스타트",
-        "신규 가입자는 평판·호혜 이력이 없어 가치관이 상보성보다 1.4배 세진다",
-    ]))
-    return "".join(b), 470, "Precision@5 베이스라인 비교와 성공 기준 판정"
-
+        down(340, 190, 210),
+        box(50, 218, 580, 64, "red", [
+            "같은 점수, 전혀 다른 현실",
+            "맞힌 사람 수만 세면 45%와 92%가 동점이 된다",
+        ]),
+        box(50, 306, 180, 76, "gray", [
+            "릴레이는 조합이다", "순위 지표가 안 맞는다", "누가 아니라 무엇을 덮나"]),
+        box(250, 306, 180, 76, "gray", [
+            "정도를 못 잰다", "맞았나 틀렸나 둘뿐", "45%와 92%가 동점"]),
+        box(450, 306, 180, 76, "gray", [
+            "호혜가 안 보인다", "받기만 해도 만점", "관계 지속을 못 본다"]),
+        box(50, 396, 580, 64, "teal", [
+            "새 지표 — 피복률@5 와 호혜 충족률을 함께",
+            "얼마나 덮었는가, 그리고 그만큼 되갚을 수 있는가"]),
+        legend(480, [
+            (62, "teal", "덮인 시간"), (164, "amber", "덮였지만 부족"),
+            (290, "red", "지표의 결함")]),
+    ]
+    return "".join(b), 502, "Precision@5를 피복률@5로 바꾼 이유"
 
 # ── 위젯 6 · 피복률@5 대 호혜 충족률 ─────────────────────────────────────
 TWO_AXIS = [
@@ -339,7 +340,7 @@ WIDGETS = {
     "02-hypothesis-revision": widget_hypothesis,
     "03-stack-validation": widget_stack,
     "04-density-curve": widget_density,
-    "05-precision-verdict": widget_precision,
+    "05-metric-change": widget_metric_change,
     "06-coverage-reciprocity": widget_two_axis,
 }
 
