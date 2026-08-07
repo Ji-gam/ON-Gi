@@ -290,12 +290,57 @@ def widget_precision() -> tuple[str, int, str]:
     return "".join(b), 470, "Precision@5 베이스라인 비교와 성공 기준 판정"
 
 
+# ── 위젯 6 · 피복률@5 대 호혜 충족률 ─────────────────────────────────────
+TWO_AXIS = [
+    ("무작위", 69.8, 49.2, "gray"),
+    ("단순 시간 겹침", 25.4, 1.2, "red"),
+    ("한 방향 피복", 70.2, 73.1, "gray"),
+    ("S 전체 가중치", 76.8, 81.0, "gray"),
+    ("S 콜드스타트", 69.7, 94.0, "gray"),
+    ("M 상보성만", 67.1, 97.1, "gray"),
+    ("조합 인지 선정", 78.6, 99.9, "teal"),
+]
+
+
+def widget_two_axis() -> tuple[str, int, str]:
+    b = [
+        '<text class="th" x="248" y="48" text-anchor="middle" '
+        'dominant-baseline="central">피복률@5</text>',
+        '<text class="th" x="490" y="48" text-anchor="middle" '
+        'dominant-baseline="central">호혜 충족률</text>',
+    ]
+    for i, (name, cov, rec, ramp) in enumerate(TWO_AXIS):
+        y = 62 + i * 38
+        cy = y + 12
+        cls = "th" if ramp == "teal" else "ts"
+        b.append(f'<text class="{cls}" x="150" y="{cy}" text-anchor="end" '
+                 f'dominant-baseline="central">{name}</text>')
+        for x0, val in ((158, cov), (400, rec)):
+            w = max(2, round(val * 1.8))
+            b.append(f'<g class="c-{ramp}"><rect x="{x0}" y="{y}" width="{w}" height="24" '
+                     f'rx="2" stroke-width="0.5"/></g>')
+            b.append(f'<text class="ts" x="{x0 + w + 8}" y="{cy}" '
+                     f'dominant-baseline="central">{val}%</text>')
+
+    b.append(box(50, 338, 280, 64, "gray", ["무제약 상한 88.7%", "호혜를 안 따지고 덮기만 할 때"]))
+    b.append(box(350, 338, 280, 64, "teal", ["호혜 제약 상한 78.6%", "조합 인지가 여기에 도달했다"]))
+    b.append(box(50, 414, 580, 64, "purple", [
+        "차이 10.1%p — 호혜를 요구하는 대가",
+        "한쪽만 받는 관계를 허용하면 더 덮을 수 있지만 그 관계는 오래 못 간다",
+    ]))
+    b.append(legend(498, [
+        (62, "teal", "우리 방식"), (164, "gray", "베이스라인·변형"),
+        (304, "red", "흔히 쓰는 잘못된 방식"),
+    ]))
+    return "".join(b), 520, "피복률@5와 호혜 충족률 비교, 두 개의 상한"
+
 WIDGETS = {
     "01-matching-pipeline": widget_matching,
     "02-hypothesis-revision": widget_hypothesis,
     "03-stack-validation": widget_stack,
     "04-density-curve": widget_density,
     "05-precision-verdict": widget_precision,
+    "06-coverage-reciprocity": widget_two_axis,
 }
 
 
