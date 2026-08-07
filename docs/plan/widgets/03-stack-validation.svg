@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="420" viewBox="0 0 680 420" role="img"><title>기술 스택과 검증 근거의 대응</title><style>text{font-family:'Malgun Gothic','Segoe UI',sans-serif}
+.t{font-size:14px;fill:#191919}
+.ts{font-size:12px;fill:#5F5E5A}
+.th{font-size:14px;font-weight:500;fill:#191919}
+.box{fill:#FFFFFF;stroke:#B4B2A9}
+.arr{stroke:#888780;fill:none;stroke-width:1.5}
+.grid{stroke:#D3D1C7;stroke-width:0.5}
+rect.seg.c-teal{fill:#9FE1CB}
+rect.seg.c-coral{fill:#F5C4B3}
+rect.seg.c-gray{fill:#D3D1C7}
+.c-gray>rect,.c-gray>circle,rect.c-gray,circle.c-gray{fill:#F1EFE8;stroke:#5F5E5A}
+.c-gray>.th{fill:#444441}
+.c-gray>.ts{fill:#5F5E5A}
+.c-teal>rect,.c-teal>circle,rect.c-teal,circle.c-teal{fill:#E1F5EE;stroke:#0F6E56}
+.c-teal>.th{fill:#085041}
+.c-teal>.ts{fill:#0F6E56}
+.c-coral>rect,.c-coral>circle,rect.c-coral,circle.c-coral{fill:#FAECE7;stroke:#993C1D}
+.c-coral>.th{fill:#712B13}
+.c-coral>.ts{fill:#993C1D}
+.c-purple>rect,.c-purple>circle,rect.c-purple,circle.c-purple{fill:#EEEDFE;stroke:#534AB7}
+.c-purple>.th{fill:#3C3489}
+.c-purple>.ts{fill:#534AB7}
+.c-red>rect,.c-red>circle,rect.c-red,circle.c-red{fill:#FCEBEB;stroke:#A32D2D}
+.c-red>.th{fill:#791F1F}
+.c-red>.ts{fill:#A32D2D}
+.c-amber>rect,.c-amber>circle,rect.c-amber,circle.c-amber{fill:#FAEEDA;stroke:#854F0B}
+.c-amber>.th{fill:#633806}
+.c-amber>.ts{fill:#854F0B}</style><defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="0" y="0" width="680" height="420" fill="#FFFFFF"/><g class="c-gray"><rect x="50" y="40" width="300" height="44" rx="8" stroke-width="0.5"/><text class="th" x="200" y="62" text-anchor="middle" dominant-baseline="central">공공 API 수집 스크립트</text></g><line class="arr" x1="352" y1="62" x2="368" y2="62" marker-end="url(#arrow)"/><g class="c-teal"><rect x="372" y="40" width="258" height="44" rx="8" stroke-width="0.5"/><text class="th" x="501" y="62" text-anchor="middle" dominant-baseline="central">정부 통계 — 이미 닫힘</text></g><g class="c-gray"><rect x="50" y="98" width="300" height="44" rx="8" stroke-width="0.5"/><text class="th" x="200" y="120" text-anchor="middle" dominant-baseline="central">H3 반경 인덱싱</text></g><line class="arr" x1="352" y1="120" x2="368" y2="120" marker-end="url(#arrow)"/><g class="c-purple"><rect x="372" y="98" width="258" height="44" rx="8" stroke-width="0.5"/><text class="th" x="501" y="120" text-anchor="middle" dominant-baseline="central">밀도 데이터를 입력으로</text></g><g class="c-gray"><rect x="50" y="156" width="300" height="44" rx="8" stroke-width="0.5"/><text class="th" x="200" y="178" text-anchor="middle" dominant-baseline="central">48슬롯 비트마스크 상보성</text></g><line class="arr" x1="352" y1="178" x2="368" y2="178" marker-end="url(#arrow)"/><g class="c-purple"><rect x="372" y="156" width="258" height="44" rx="8" stroke-width="0.5"/><text class="th" x="501" y="178" text-anchor="middle" dominant-baseline="central">단위 테스트 · 반례</text></g><g class="c-gray"><rect x="50" y="214" width="300" height="44" rx="8" stroke-width="0.5"/><text class="th" x="200" y="236" text-anchor="middle" dominant-baseline="central">문장 임베딩 코사인 유사도</text></g><line class="arr" x1="352" y1="236" x2="368" y2="236" marker-end="url(#arrow)"/><g class="c-purple"><rect x="372" y="214" width="258" height="44" rx="8" stroke-width="0.5"/><text class="th" x="501" y="236" text-anchor="middle" dominant-baseline="central">전문가 판정 50쌍</text></g><g class="c-gray"><rect x="50" y="272" width="300" height="44" rx="8" stroke-width="0.5"/><text class="th" x="200" y="294" text-anchor="middle" dominant-baseline="central">가중합 랭킹 S</text></g><line class="arr" x1="352" y1="294" x2="368" y2="294" marker-end="url(#arrow)"/><g class="c-purple"><rect x="372" y="272" width="258" height="44" rx="8" stroke-width="0.5"/><text class="th" x="501" y="294" text-anchor="middle" dominant-baseline="central">베이스라인 B2 대비</text></g><g class="c-gray"><rect x="50" y="330" width="300" height="44" rx="8" stroke-width="0.5"/><text class="th" x="200" y="352" text-anchor="middle" dominant-baseline="central">근무표 파싱 (PyMuPDF · LLM)</text></g><line class="arr" x1="352" y1="352" x2="368" y2="352" marker-end="url(#arrow)"/><g class="c-amber"><rect x="372" y="330" width="258" height="44" rx="8" stroke-width="0.5"/><text class="th" x="501" y="352" text-anchor="middle" dominant-baseline="central">사용자 확정본 필요</text></g><circle class="c-teal" cx="62" cy="396" r="5" stroke-width="0.5"/><text class="ts" x="74" y="396" dominant-baseline="central">닫힘</text><circle class="c-purple" cx="140" cy="396" r="5" stroke-width="0.5"/><text class="ts" x="152" y="396" dominant-baseline="central">사용자 없이 지금 가능</text><circle class="c-amber" cx="308" cy="396" r="5" stroke-width="0.5"/><text class="ts" x="320" y="396" dominant-baseline="central">파일럿 필요</text></svg>
