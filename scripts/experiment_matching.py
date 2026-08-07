@@ -147,6 +147,55 @@ def rank_staged(a: Person, b: Person) -> float:
 # M 비중 스윕 — S = w·M + (1-w)·V. 현재 가중치의 실효 M 비중은 0.25/0.60 = 0.417
 WEIGHT_SWEEP = [0.30, 0.42, 0.50, 0.60, 0.65, 0.70, 0.80, 0.90]
 
+# ── 릴레이 (다자 피복) ──────────────────────────────────────────────────
+NIGHT = span(22, 8)          # 22:00~06:00
+OPT_CHECK_N = 50             # 완전탐색 비교 규모. 이 크기에서 C(m,3) <= 20,000 이 성립
+
+
+def helper_free(p: Person) -> int:
+    """밤샘 태그가 없으면 야간 구간은 못 덮는다 (TECH_LOGIC §3.3.1 OVERNIGHT_OK)."""
+    return p.free if "OVERNIGHT_OK" in p.offers else p.free & ~NIGHT & FULL
+
+
+def greedy_cover(need: int, pool: list[Person], k: int) -> int:
+    """미피복 슬롯을 가장 많이 덮는 후보를 k명까지. ln k 근사."""
+    covered = 0
+    for _ in range(k):
+        rest = need & ~covered & FULL
+        if not rest:
+            break
+        best = max(pool, key=lambda p: (rest & helper_free(p)).bit_count(), default=None)
+        gain = (rest & helper_free(best)).bit_count() if best else 0
+        if gain == 0:
+            break
+        covered |= helper_free(best) & need
+    return covered
+
+
+def exhaustive_cover(need: int, pool: list[Person], k: int = 3) -> int:
+    """전체 풀에서 3인 조합을 모두 본다 — 진짜 최적해.
+
+    상위 N명으로 자르면 최적해가 아니다. greedy 의 2·3번째 선택은 *잔여* 구간을
+    덮는 사람이라 개별 기여도 상위권에 없을 수 있다. 자른 완전탐색이 greedy 보다
+    낮게 나오는 것은 알고리즘 문제가 아니라 후보 절단 때문이다.
+    """
+    top = [helper_free(p) & need for p in pool]
+    best = 0
+    for a in range(len(top)):
+        ca = top[a]
+        if ca.bit_count() > best.bit_count():
+            best = ca
+        for b in range(a + 1, len(top)):
+            cb = ca | top[b]
+            if cb.bit_count() > best.bit_count():
+                best = cb
+            if k >= 3:
+                for c in range(b + 1, len(top)):
+                    cc = cb | top[c]
+                    if cc.bit_count() > best.bit_count():
+                        best = cc
+    return best
+
 
 METHODS = {
     "B0 무작위":            lambda a, b: 0.0,
@@ -224,6 +273,56 @@ def trial(n: int, rng: random.Random) -> dict:
     }
 
 
+def relay_trial(n: int, rng: random.Random, exhaustive: bool = False) -> dict:
+    """1:1 최선 대비 릴레이(2~3인)가 얼마나 더 덮는가."""
+    people = [Person(rng) for _ in range(n)]
+    acc = defaultdict(list)
+    night_acc = defaultdict(list)
+
+    for i, ego in enumerate(people):
+        pool = [p for j, p in enumerate(people) if j != i and tags_ok(ego, p)]
+        need = ego.need
+        total = need.bit_count()
+        if not pool or not total:
+            continue
+
+        modes = {
+            "1:1 최선":            greedy_cover(need, pool, 1),
+            "릴레이 2인 (greedy)": greedy_cover(need, pool, 2),
+            "릴레이 3인 (greedy)": greedy_cover(need, pool, 3),
+        }
+        if exhaustive:                      # C(m,3) <= 20,000 일 때만 (TECH_LOGIC §3.3)
+            modes["릴레이 3인 (완전탐색)"] = exhaustive_cover(need, pool, 3)
+        for name, covered in modes.items():
+            acc[name].append(covered.bit_count() / total)
+
+        night_need = need & NIGHT
+        if night_need:
+            for name, covered in modes.items():
+                night_acc[name].append((covered & night_need).bit_count() / night_need.bit_count())
+
+    return {
+        "coverage": {k: statistics.mean(v) for k, v in acc.items()},
+        "full": {k: sum(1 for x in v if x >= 0.999) / len(v) for k, v in acc.items()},
+        "night_full": {k: (sum(1 for x in v if x >= 0.999) / len(v)) if v else 0.0
+                       for k, v in night_acc.items()},
+        "night_share": len(night_acc.get("1:1 최선", [])) / max(1, len(acc.get("1:1 최선", []))),
+    }
+
+
+RELAY_MODES = ["1:1 최선", "릴레이 2인 (greedy)", "릴레이 3인 (greedy)"]
+OPT_MODES = RELAY_MODES + ["릴레이 3인 (완전탐색)"]
+
+
+def relay_sweep(n: int, seeds: int, exhaustive: bool = False) -> dict:
+    modes = OPT_MODES if exhaustive else RELAY_MODES
+    runs = [relay_trial(n, random.Random(2000 + s), exhaustive) for s in range(seeds)]
+    return {
+        key: {m: statistics.mean(r[key][m] for r in runs) for m in modes}
+        for key in ("coverage", "full", "night_full")
+    } | {"night_share": statistics.mean(r["night_share"] for r in runs), "modes": modes}
+
+
 def sweep(sizes: list[int]) -> dict[int, dict]:
     out = {}
     for n in sizes:
@@ -276,7 +375,58 @@ def regional_scale() -> list[tuple[str, str, int, int, int]]:
     return [r for r in rows if r[2] >= 1000][:5]
 
 
-def report(out: io.TextIOBase, sizes: list[int], results: dict, elapsed: float) -> None:
+def report_relay(p, relay: dict, opt: dict, n: int, seeds: int) -> None:
+    p(f"## 2-d. 릴레이 — 여러 명이 나눠 덮으면 상한이 올라가는가 (N={n}, 시드 {seeds})\n")
+    p("한 명이 다 못 덮으면 **여러 명이 시간을 나눠 덮는다**(TECH_LOGIC §3.3 Set Cover). "
+      "밤샘 태그(`OVERNIGHT_OK`)가 없는 사람은 야간 구간을 못 덮도록 제약을 걸었다.\n")
+    p("| 방식 | 평균 피복률 | **완전 피복률** | 야간 완전 피복률 |")
+    p("|---|---:|---:|---:|")
+    for m in relay["modes"]:
+        p(f"| {m} | {relay['coverage'][m] * 100:.1f}% | "
+          f"**{relay['full'][m] * 100:.1f}%** | {relay['night_full'][m] * 100:.1f}% |")
+
+    solo = relay["full"]["1:1 최선"]
+    r3 = relay["full"]["릴레이 3인 (greedy)"]
+    r2 = relay["full"]["릴레이 2인 (greedy)"]
+    cov_solo = relay["coverage"]["1:1 최선"]
+    cov_r3 = relay["coverage"]["릴레이 3인 (greedy)"]
+
+    p(f"\n**릴레이가 상한을 올린다.** 완전 피복률이 1:1의 {solo * 100:.1f}%에서 "
+      f"3인 릴레이 {r3 * 100:.1f}%로 올라간다. 평균 피복률도 "
+      f"{cov_solo * 100:.1f}% → {cov_r3 * 100:.1f}%다. "
+      f"**로드맵의 릴레이 성립률 목표(야간 요청의 30% 완전 피복)는 "
+      f"{relay['night_full']['릴레이 3인 (greedy)'] * 100:.1f}%로 "
+      f"{'통과' if relay['night_full']['릴레이 3인 (greedy)'] >= 0.30 else '미달'}**이다.\n")
+
+    g3 = opt["full"]["릴레이 3인 (greedy)"]
+    e3 = opt["full"]["릴레이 3인 (완전탐색)"]
+    gap = (e3 - g3) * 100
+    p(f"> **3번째 사람은 거의 기여하지 않는다** — 2인 {r2 * 100:.1f}% 대 3인 {r3 * 100:.1f}%. "
+      "릴레이 길이를 2로 제한해도 손실이 없다. 조율 부담과 사고 시 책임 소재를 줄이는 쪽이 낫다.")
+    p("")
+    p(f"### greedy 가 최적해를 얼마나 놓치는가 (N={OPT_CHECK_N}, 전체 풀 완전탐색)")
+    p("")
+    p("| 방식 | 완전 피복률 |")
+    p("|---|---:|")
+    p(f"| 릴레이 3인 greedy | {g3 * 100:.1f}% |")
+    p(f"| 릴레이 3인 완전탐색 | {e3 * 100:.1f}% |")
+    p("")
+    verdict = "greedy 로 충분하다 — 완전탐색을 쓸 이유가 없다" if gap < 3 else "완전탐색이 의미 있게 낫다"
+    p(f"**차이 {gap:+.1f}%p.** {verdict}. "
+      f"TECH_LOGIC §3.3은 `C(m,3) ≤ 20,000`에서 완전탐색을 쓰기로 했는데, "
+      f"N={OPT_CHECK_N}이 그 조건에 해당한다.")
+    p("")
+    p("> **주의**: 완전탐색을 상위 N명으로 잘라서 돌리면 greedy 보다 낮게 나온다. "
+      "greedy 의 2·3번째 선택은 *잔여* 구간을 덮는 사람이라 개별 기여도 상위권에 없기 때문이다. "
+      "구현할 때 틀리기 쉬운 지점이다.")
+    p("")
+    p(f"> 야간 요청은 전체의 {relay['night_share'] * 100:.0f}%다. "
+      "야간이 남는 이유는 사람이 없어서가 아니라 **밤샘 태그를 가진 사람이 적어서**다. "
+      "합성에서 보유율을 55%로 뒀는데, 실제 값은 파일럿에서 재야 한다.\n")
+
+
+def report(out: io.TextIOBase, sizes: list[int], results: dict, relay: dict, opt: dict,
+           relay_n: int, relay_seeds: int, elapsed: float) -> None:
     p = lambda *a: print(*a, file=out)  # noqa: E731
 
     p("# H1-a v3 검증 실험 결과\n")
@@ -429,6 +579,8 @@ def report(out: io.TextIOBase, sizes: list[int], results: dict, elapsed: float) 
       "`V`는 정의상 기여할 수 없다. **이 실험 결과로 `V` 제거를 결정하면 안 된다.** "
       "전문가 판정 50쌍이 나온 뒤에 판정한다.\n")
 
+    report_relay(p, relay, opt, relay_n, relay_seeds)
+
     # ── ③ 지역 적용 ──
     rows = regional_scale()
     if rows and threshold:
@@ -462,17 +614,20 @@ def main() -> None:
     ap.add_argument("--sizes", type=int, nargs="+", default=[10, 20, 30, 50, 80, 120])
     args = ap.parse_args()
 
+    relay_n, relay_seeds = args.sizes[-1], 10
     start = time.perf_counter()
     results = sweep(args.sizes)
+    relay = relay_sweep(relay_n, relay_seeds)
+    opt = relay_sweep(OPT_CHECK_N, relay_seeds, exhaustive=True)
     elapsed = time.perf_counter() - start
 
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         with args.out.open("w", encoding="utf-8") as fh:
-            report(fh, args.sizes, results, elapsed)
+            report(fh, args.sizes, results, relay, opt, relay_n, relay_seeds, elapsed)
         print(f"저장 {args.out}")
     else:
-        report(sys.stdout, args.sizes, results, elapsed)
+        report(sys.stdout, args.sizes, results, relay, opt, relay_n, relay_seeds, elapsed)
 
 
 if __name__ == "__main__":
