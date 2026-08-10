@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
 from app.apis.v1 import v1_routers
+from app.core.db.databases import get_db
+from auth_kit.router import get_session
 
 app = FastAPI(
     title="ON-Gi API",
@@ -18,6 +20,12 @@ app = FastAPI(
 )
 
 app.include_router(v1_routers)
+app.dependency_overrides[get_session] = get_db
+# TODO(T-ACC-1): 프로젝트 메일러/SMS 게이트웨이 연결 전까지는 인증 메일 링크·본인확인 코드가
+# 로그로만 찍힌다.
+# from auth_kit import router as auth_router_mod
+# auth_router_mod.send_email = my_send_mail
+# auth_router_mod.send_sms = my_send_sms
 
 
 @app.get("/health", tags=["health"], summary="헬스체크")

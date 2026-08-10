@@ -3,7 +3,7 @@
 v3.0 · 이력: `git log docs/CONTRIBUTING.md`. 구조/브랜치/이슈·PR/구현순서/로컬실행/검증/커밋 전부 이 문서 하나. 사람용 프로세스(슬랙공지/킥오프체크리스트) 없음 — 에이전트 실행 규칙만.
 
 0. 요약
-레포=모노레포1개(`frontend/`,`app/`=레이어우선). 브랜치=`main`(배포)←`dev`(통합)←`feature/T-ID-설명`. 이슈→PR=이슈먼저→버티컬슬라이스200~300줄PR→즉시머지(스택형금지,§4). 구현순서=TDD:테스트(RED)→`models→repos→services→apis`(GREEN)→Swagger→검증→커밋(§5). 커밋=`type(T-ID): 설명` 예`feat(T-AUTH-1): 이메일 회원가입 API`. PR/이슈 작성=길게 쓰지 않음(§8).
+레포=모노레포1개(`frontend/`,`app/`=레이어우선). 브랜치=`main`(배포)←`dev`(통합)←`feature/T-ID-설명`. 이슈→PR=이슈먼저→버티컬슬라이스200~300줄PR→즉시머지(스택형금지,§4). 구현순서=TDD:테스트(RED)→`models→repos→services→apis`(GREEN)→Swagger→검증→커밋(§5). 커밋=`type(T-ID): 설명` 예`feat(T-ACC-1): 이메일 회원가입 API`. T-ID=도메인 코드 기준 Task Contract ID(`docs/tasks/T-{도메인}-{N}.md`), REQ-ID(`REQ-F-ACC-01` 등)는 그 안에서 충족 대상으로 참조. PR/이슈 작성=길게 쓰지 않음(§8).
 
 1. 레포 구조
 ```
@@ -80,8 +80,8 @@ cd frontend && npx tsc --noEmit && npm run lint
 핵심만: 무엇을/왜/어떻게 검증했는지 불릿 몇 줄. 배경서술·산문 금지 — 필요하면 `decision_log/` 링크로 대체. 길수록 에이전트는 토큰낭비, 사람은 인지부하로 안 읽음.
 ```
 type(T-ID): 설명
-feat(T-AUTH-1): 이메일 회원가입 API 구현
-fix(T-NTFY-1): 알림 미도착 버그 수정
+feat(T-ACC-1): 이메일 회원가입 API 구현
+fix(T-COM-1): 알림 미도착 버그 수정
 ```
 - PR 생성전 `gh pr list --head <브랜치>` 확인 — 있으면 새 PR 없이 push
 - 제목 `[T-ID] 요약`, 관심사별 커밋·브랜치 분리
