@@ -8,6 +8,7 @@ Repository 계층을 따로 두지 않았다 - 쿼리가 대부분 한 줄짜리
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import overload
 
 import jwt
 from fastapi import HTTPException, status
@@ -74,6 +75,10 @@ def _now() -> datetime:
     return datetime.now(tz=config.TIMEZONE)
 
 
+@overload
+def _aware(value: datetime) -> datetime: ...
+@overload
+def _aware(value: None) -> None: ...
 def _aware(value: datetime | None) -> datetime | None:
     """MySQL(asyncmy)은 DATETIME을 타임존 없이(naive) 돌려준다 - tz-aware 값과 비교하면
     TypeError가 나므로 비교 전에 항상 이걸 통과시킨다."""
