@@ -1,1 +1,7 @@
-{}
+{
+  "T-ACC-1": {
+    "branch": "feature/T-ACC-1-mysql-alembic-erd",
+    "scope": "MySQL 컨테이너 확인 + Alembic 마이그레이션 생성/적용 + ERD.dbml 신규 작성"
+  }
+}
+

@@ -35,10 +35,12 @@
 - [x] `ruff check`/`ruff format` 통과 (신규/수정 파일)
 - [x] `TestClient`로 실제 호출 확인: 본인확인 → 가입(profile_id 없음 확인) → 법정대리인 동의 →
       아동 등록(민감정보 암호화 저장·목록에는 미노출) 전체 흐름
-- [ ] Alembic 마이그레이션 생성 — 로컬에 MySQL 컨테이너가 없어 미실행. DB 기동 후
-      `uv run alembic revision --autogenerate -m "auth_kit + children"` 필요
-- [ ] `docs/dev/ERD.dbml` 동기화 — 파일 자체가 아직 없어 스킵. 생성 시 함께 반영 필요
-- [ ] 프로젝트 메일러/SMS 게이트웨이 연결 — 현재 `send_email`/`send_sms`는 로그 stub(`app/main.py`의 TODO 참고)
+- [x] Alembic 마이그레이션 생성 — `app/core/db/migrations/versions/ff9d99f5db23_auth_kit_children_초기_스키마.py`,
+      `mysql` 컨테이너의 `ai_health_on` DB(같은 컨테이너에 이미 다른 워크트리용 `ai_health` DB가
+      옛 ReMedi 스키마로 떠 있어 이름 충돌 회피)에 `alembic upgrade head` 적용 확인
+- [x] `docs/dev/ERD.dbml` 신규 작성 — 위 마이그레이션의 10테이블 전부 반영(v1.0)
+- [ ] 프로젝트 메일러/SMS 게이트웨이 연결 — 현재 `send_email`/`send_sms`는 로그 stub(`app/main.py`의 TODO 참고).
+      우선순위 낮춤(5주 MVP, 비용 제약 감안 발표 직전 연결 가능)
 
 ### 후속 필요 (T-ACC-2로 분리, 이 계약 범위 밖)
 - REQ-F-ACC-04 보호자 프로필 확장(거주지 H3 인덱스, 직군, 근무형태, 가구구성, 보유태그) —
