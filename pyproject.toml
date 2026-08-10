@@ -49,6 +49,7 @@ app = [
     "asyncmy>=0.2.11",
     "bcrypt<=4.0.1",
     "celery>=5.4.0",
+    "email-validator>=2.2.0",  # pydantic[email] - auth_kit 가입 스키마의 EmailStr 검증
     "fastapi[standard]>=0.128.0",
     # FCM(Firebase Cloud Messaging) - 웹/네이티브 공통 발송 채널(app/services/push_service.py).
     "firebase-admin>=7.5.0",
@@ -64,6 +65,7 @@ app = [
     "uvicorn>=0.40.0",
 ]
 dev = [
+    "aiosqlite>=0.21.0",  # auth_kit/security_kit 자체 테스트용 인메모리 SQLite
     "coverage>=7.13.2",
     "mypy>=1.19.1",
     "pytest-asyncio>=1.3.0",
