@@ -12,6 +12,9 @@ class CareRequestCreate(BaseModel):
     care_date: date
     start_slot: int = Field(ge=0, lt=48, description="시작 슬롯(0~47, 30분 단위)")
     end_slot: int = Field(gt=0, le=48, description="종료 슬롯(1~48, exclusive)")
+    is_solo: bool = Field(
+        default=False, description="단독 위탁 요청 여부(REQ-F-TRS-04). True면 상대와 L3 관계여야 한다."
+    )
 
 
 class CheckinRequest(BaseModel):
