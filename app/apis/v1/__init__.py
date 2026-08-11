@@ -1,9 +1,11 @@
 from fastapi import APIRouter
 
 from app.apis.v1.acc_routers import acc_router
+from app.apis.v1.sch_routers import sch_router
 from auth_kit.router import auth_router
 
 # 각 도메인 라우터는 여기에 include_router로 등록한다.
 v1_routers = APIRouter(prefix="/api/v1")
 v1_routers.include_router(auth_router)
 v1_routers.include_router(acc_router)
+v1_routers.include_router(sch_router)
