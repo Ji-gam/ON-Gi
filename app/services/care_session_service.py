@@ -17,6 +17,7 @@ from app.repositories.care_evaluation_repository import CareEvaluationRepository
 from app.repositories.care_session_repository import CareSessionRepository
 from app.repositories.child_repository import ChildRepository
 from app.repositories.work_schedule_repository import WorkScheduleRepository
+from app.services.point_ledger_service import PointLedgerService
 from app.services.trust_level_service import TrustLevelService
 from auth_kit.models import User
 
@@ -51,6 +52,7 @@ class CareSessionService:
         self.child_repo = ChildRepository(session)
         self.evaluation_repo = CareEvaluationRepository(session)
         self.trust_level_service = TrustLevelService(session)
+        self.point_ledger_service = PointLedgerService(session)
 
     async def create_request(
         self,
@@ -71,6 +73,8 @@ class CareSessionService:
 
         if is_solo:
             await self.trust_level_service.require_l3(requester.id, provider_id)
+
+        await self.point_ledger_service.ensure_can_request(requester.id)
 
         child = await self.child_repo.get(child_id)
         if child is None or child.user_id != requester.id:
@@ -163,7 +167,8 @@ class CareSessionService:
         checkout_at = datetime.now(UTC)
         care_session.checkout_at = checkout_at
         care_session.actual_minutes = int((checkout_at - _aware(care_session.checkin_at)).total_seconds() // 60)
-        # TODO(T-CAR-2→T-PNT-1): actual_minutes를 포인트 정산 근거로 연결
         await self.session.commit()
         await self.session.refresh(care_session)
+
+        await self.point_ledger_service.settle_care_session(care_session)
         return care_session
