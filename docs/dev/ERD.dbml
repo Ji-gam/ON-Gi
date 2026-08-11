@@ -1,8 +1,10 @@
-// ERD.dbml v1.1 · docs/CODING_RULES.md §6(ERD 동기화 규칙) canonical 산출물
+// ERD.dbml v1.2 · docs/CODING_RULES.md §6(ERD 동기화 규칙) canonical 산출물
 // DB CRUD 작업(모델 추가/변경, 마이그레이션 작성)마다 같은 커밋/PR에서 이 파일도 갱신 + 버전접미사 상향.
 // 대상 마이그레이션: app/core/db/migrations/versions/ff9d99f5db23_auth_kit_children_초기_스키마.py
 //                   app/core/db/migrations/versions/9d344b799f53_guardian_profile.py (T-ACC-2)
-// 소유: auth_kit(회원가입/인증) + app/models/children.py(T-ACC-1) + app/models/guardian_profile.py(T-ACC-2, 접두어 acc_*)
+//                   app/core/db/migrations/versions/18d4663fd949_parenting_values.py (T-ACC-3)
+// 소유: auth_kit(회원가입/인증) + app/models/children.py(T-ACC-1) + app/models/guardian_profile.py(T-ACC-2)
+//      + app/models/parenting_values.py(T-ACC-3, 접두어 acc_*)
 
 Table users {
   id bigint [pk, increment]
@@ -148,4 +150,28 @@ Table guardian_tags {
   }
 
   note: 'REQ-F-ACC-04 보유 태그. 알려진 코드는 app/core/utils/guardian_tags.py 참고'
+}
+
+Table parenting_values_profiles {
+  user_id bigint [pk, ref: > users.id, note: 'ondelete CASCADE - User(auth_kit)는 직접 수정하지 않고 분리']
+  warmth_score float [not null, note: '온기(반응성) 4문항 평균, 1~5']
+  control_score float [not null, note: '통제(요구성) 4문항 평균, 1~5']
+  type_label varchar(20) [not null, note: 'enum: AUTHORITATIVE/AUTHORITARIAN/PERMISSIVE/NEGLECTFUL - 중앙값(3.0) 기준 사분면 분류']
+  narrative varchar(2000) [note: 'REQ-F-ACC-10 자유 서술. LLM 보정은 스텁(docs/tasks/T-ACC-3.md 참고)']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  note: 'REQ-F-ACC-07 — 바움린드 8문항 진단 결과(현재 값). 문항 텍스트는 app/core/utils/baumrind_questions.py. MAT 가치관 유사도(REQ-F-MAT-04) 입력값'
+}
+
+Table parenting_values_history {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  warmth_score float [not null]
+  control_score float [not null]
+  type_label varchar(20) [not null, note: 'enum: AUTHORITATIVE/AUTHORITARIAN/PERMISSIVE/NEGLECTFUL']
+  source varchar(20) [not null, note: 'enum: QUESTIONNAIRE/NARRATIVE']
+  created_at timestamp [not null]
+
+  note: 'REQ-F-ACC-08/10 — 재진단·자유서술 제출마다 스냅샷 1행. 매칭 재계산 트리거 자체는 MAT 도메인 범위'
 }
