@@ -1,7 +1,8 @@
-// ERD.dbml v1.0 · docs/CODING_RULES.md §6(ERD 동기화 규칙) canonical 산출물
+// ERD.dbml v1.1 · docs/CODING_RULES.md §6(ERD 동기화 규칙) canonical 산출물
 // DB CRUD 작업(모델 추가/변경, 마이그레이션 작성)마다 같은 커밋/PR에서 이 파일도 갱신 + 버전접미사 상향.
 // 대상 마이그레이션: app/core/db/migrations/versions/ff9d99f5db23_auth_kit_children_초기_스키마.py
-// 소유: auth_kit(회원가입/인증) + app/models/children.py(T-ACC-1, 접두어 acc_*)
+//                   app/core/db/migrations/versions/9d344b799f53_guardian_profile.py (T-ACC-2)
+// 소유: auth_kit(회원가입/인증) + app/models/children.py(T-ACC-1) + app/models/guardian_profile.py(T-ACC-2, 접두어 acc_*)
 
 Table users {
   id bigint [pk, increment]
@@ -122,4 +123,29 @@ Table children_sensitive {
   medications varchar(512) [note: 'EncryptedStr']
 
   note: 'REQ-F-ACC-06 — children과 물리적으로 분리된 민감정보 테이블, MAT 하드필터 입력값'
+}
+
+Table guardian_profiles {
+  user_id bigint [pk, ref: > users.id, note: 'ondelete CASCADE - User(auth_kit)는 직접 수정하지 않고 분리']
+  residence_h3 varchar(15) [not null, indexed, note: 'REQ-F-ACC-04/REQ-NF-SEC-05 - 좌표 아닌 H3 셀 문자열만 저장']
+  job_category varchar(20) [not null, note: 'enum: OFFICE_WORKER/SERVICE/SELF_EMPLOYED/HEALTHCARE/EDUCATION/IT/PUBLIC_SERVANT/HOMEMAKER/FREELANCER/OTHER']
+  work_type varchar(20) [not null, note: 'enum: FULL_TIME/SHIFT/FLEXIBLE/REMOTE/FREELANCE/UNEMPLOYED/OTHER']
+  household_composition varchar(20) [not null, note: 'enum: TWO_PARENT/SINGLE_PARENT/EXTENDED_FAMILY/OTHER']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  note: 'REQ-F-ACC-04 — enum 값은 요구사항정의서 미확정으로 T-ACC-2 가정치(docs/tasks/T-ACC-2.md), MAT 하드필터/소프트스코어 입력값'
+}
+
+Table guardian_tags {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  tag_code varchar(50) [not null, note: '고정 Enum 아님 - REQ-F-MAT-03 선택 6종 미확정이라 확장 가능한 코드 문자열']
+  created_at timestamp [not null]
+
+  Indexes {
+    (user_id, tag_code) [unique, name: 'uq_guardian_tag_user_code']
+  }
+
+  note: 'REQ-F-ACC-04 보유 태그. 알려진 코드는 app/core/utils/guardian_tags.py 참고'
 }
