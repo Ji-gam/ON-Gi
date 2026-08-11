@@ -6,12 +6,20 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.databases import get_db
+from app.core.utils.baumrind_questions import BAUMRIND_QUESTIONS
 from app.dependencies import get_current_user
 from app.dtos.children import ChildCreateRequest, ChildDetailResponse, ChildResponse
 from app.dtos.guardian_profile_dto import GuardianProfileResponse, GuardianProfileUpsertRequest
+from app.dtos.parenting_values_dto import (
+    BaumrindQuestionItem,
+    NarrativeSubmitRequest,
+    ParentingValuesResponse,
+    QuestionnaireSubmitRequest,
+)
 from app.models.children import Child
 from app.services.child_service import ChildService
 from app.services.guardian_profile_service import GuardianProfileService
+from app.services.parenting_values_service import ParentingValuesService
 from auth_kit.models import User
 
 acc_router = APIRouter(prefix="/acc", tags=["acc"])
@@ -127,3 +135,53 @@ async def get_guardian_profile(session: Session, user: CurrentUser) -> GuardianP
         tags=tags,
         updated_at=profile.updated_at,
     )
+
+
+@acc_router.get(
+    "/parenting-values/questions",
+    response_model=list[BaumrindQuestionItem],
+    summary="바움린드 8문항 목록",
+)
+async def list_baumrind_questions() -> list[BaumrindQuestionItem]:
+    return [
+        BaumrindQuestionItem(index=i, text=q.text, dimension=q.dimension.value)
+        for i, q in enumerate(BAUMRIND_QUESTIONS)
+    ]
+
+
+@acc_router.post(
+    "/parenting-values/questionnaire",
+    response_model=ParentingValuesResponse,
+    summary="양육 가치관 8문항 진단(최초 진단/재진단 겸용)",
+    description="REQ-F-ACC-07/08. 응답 8개는 `GET /parenting-values/questions` 순서와 동일해야 한다.",
+)
+async def submit_parenting_questionnaire(
+    session: Session, user: CurrentUser, request: QuestionnaireSubmitRequest
+) -> ParentingValuesResponse:
+    profile = await ParentingValuesService(session).submit_questionnaire(user, request.answers)
+    return ParentingValuesResponse.model_validate(profile)
+
+
+@acc_router.post(
+    "/parenting-values/narrative",
+    response_model=ParentingValuesResponse,
+    summary="자유 서술 기반 가치관 보정(REQ-F-ACC-10)",
+    description="LLM 실연동 전 스텁 - 서술은 저장되지만 점수는 아직 자동 보정되지 않는다.",
+    responses={status.HTTP_400_BAD_REQUEST: {"description": "8문항 진단 미완료"}},
+)
+async def submit_parenting_narrative(
+    session: Session, user: CurrentUser, request: NarrativeSubmitRequest
+) -> ParentingValuesResponse:
+    profile = await ParentingValuesService(session).submit_narrative(user, request.narrative)
+    return ParentingValuesResponse.model_validate(profile)
+
+
+@acc_router.get(
+    "/parenting-values",
+    response_model=ParentingValuesResponse,
+    summary="내 양육 가치관 진단 조회",
+    responses={status.HTTP_404_NOT_FOUND: {"description": "진단 미완료"}},
+)
+async def get_parenting_values(session: Session, user: CurrentUser) -> ParentingValuesResponse:
+    profile = await ParentingValuesService(session).get_profile(user)
+    return ParentingValuesResponse.model_validate(profile)
