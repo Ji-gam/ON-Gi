@@ -19,9 +19,7 @@ export default function ParentingValuesPage() {
     parentingValuesApi
       .getQuestions()
       .then(setQuestions)
-      .catch((err) =>
-        setError(err instanceof ApiError ? err.message : "문항을 불러오지 못했습니다."),
-      );
+      .catch((err) => setError(err instanceof Error ? err.message : "문항을 불러오지 못했습니다."));
   }, []);
 
   useEffect(() => {
@@ -50,7 +48,7 @@ export default function ParentingValuesPage() {
       );
       setResult(res);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "제출에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "제출에 실패했습니다.");
     } finally {
       setIsSubmittingQuestionnaire(false);
     }
@@ -65,7 +63,7 @@ export default function ParentingValuesPage() {
       const res = await parentingValuesApi.submitNarrative({ narrative }, accessToken);
       setResult(res);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "제출에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "제출에 실패했습니다.");
     } finally {
       setIsSubmittingNarrative(false);
     }

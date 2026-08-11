@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { ApiError } from "@/api/client";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
@@ -22,7 +21,7 @@ export default function LoginPage() {
       await login(email, password);
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "로그인에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "로그인에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
     }

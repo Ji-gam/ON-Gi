@@ -2,7 +2,6 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import * as authApi from "@/api/auth";
-import { ApiError } from "@/api/client";
 import type { Gender, TermItem } from "@/api/types";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -33,9 +32,7 @@ export default function SignupPage() {
     authApi
       .getTerms()
       .then((res) => setTerms(res.terms))
-      .catch((err) =>
-        setError(err instanceof ApiError ? err.message : "약관을 불러오지 못했습니다."),
-      );
+      .catch((err) => setError(err instanceof Error ? err.message : "약관을 불러오지 못했습니다."));
   }, []);
 
   function toggleAgreement(term: TermItem) {
@@ -73,7 +70,7 @@ export default function SignupPage() {
       applySession(result);
       navigate("/");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "회원가입에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "회원가입에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
     }

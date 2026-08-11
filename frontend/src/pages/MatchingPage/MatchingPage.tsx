@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-import { ApiError } from "@/api/client";
 import * as matchingApi from "@/api/matching";
 import type { CandidateResponse } from "@/api/matchingTypes";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,9 +14,7 @@ export default function MatchingPage() {
     matchingApi
       .getCandidates(accessToken)
       .then(setCandidates)
-      .catch((err) =>
-        setError(err instanceof ApiError ? err.message : "후보를 불러오지 못했습니다."),
-      );
+      .catch((err) => setError(err instanceof Error ? err.message : "후보를 불러오지 못했습니다."));
   }, [accessToken]);
 
   if (!accessToken) return null;

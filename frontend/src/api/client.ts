@@ -17,8 +17,8 @@ interface ValidationErrorItem {
   msg: string;
 }
 
-function toErrorMessage(detail: unknown): string {
-  if (typeof detail === "string") return detail;
+function toErrorMessage(detail: unknown, status: number): string {
+  if (typeof detail === "string" && detail) return detail;
   if (Array.isArray(detail)) {
     return (detail as ValidationErrorItem[])
       .map((item) => {
@@ -28,7 +28,7 @@ function toErrorMessage(detail: unknown): string {
       })
       .join(" ");
   }
-  return "요청을 처리하지 못했습니다.";
+  return `요청을 처리하지 못했습니다. (상태 코드: ${status})`;
 }
 
 interface RequestOptions {
@@ -45,18 +45,24 @@ export async function apiRequest<TResponse>(
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-  // 백엔드가 refresh_token을 httpOnly 쿠키로 내려준다 — credentials:"include"로만 주고받는다.
-  const response = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers,
-    credentials: "include",
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let response: Response;
+  try {
+    // 백엔드가 refresh_token을 httpOnly 쿠키로 내려준다 — credentials:"include"로만 주고받는다.
+    response = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      credentials: "include",
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (err) {
+    console.error("네트워크 오류", err);
+    throw new ApiError("서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.", 0);
+  }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
     console.error("API 오류", response.status, payload);
-    throw new ApiError(toErrorMessage(payload?.detail), response.status);
+    throw new ApiError(toErrorMessage(payload?.detail, response.status), response.status);
   }
 
   if (response.status === 204) return undefined as TResponse;

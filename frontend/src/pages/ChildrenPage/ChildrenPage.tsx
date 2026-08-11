@@ -2,7 +2,6 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import * as childrenApi from "@/api/children";
 import type { ChildGender, ChildResponse } from "@/api/childrenTypes";
-import { ApiError } from "@/api/client";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function ChildrenPage() {
@@ -23,9 +22,7 @@ export default function ChildrenPage() {
     childrenApi
       .listChildren(accessToken)
       .then(setChildren)
-      .catch((err) =>
-        setError(err instanceof ApiError ? err.message : "목록을 불러오지 못했습니다."),
-      );
+      .catch((err) => setError(err instanceof Error ? err.message : "목록을 불러오지 못했습니다."));
   }, [accessToken]);
 
   async function handleCreate(event: FormEvent) {
@@ -54,7 +51,7 @@ export default function ChildrenPage() {
       setConditions("");
       setMedications("");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "아동 등록에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "아동 등록에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
     }
@@ -67,7 +64,7 @@ export default function ChildrenPage() {
       await childrenApi.deleteChild(childId, accessToken);
       setChildren((prev) => prev?.filter((c) => c.id !== childId) ?? null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "삭제에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "삭제에 실패했습니다.");
     }
   }
 
