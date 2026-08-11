@@ -7,6 +7,7 @@ from app.models.parenting_values import (  # noqa: F401  # ACC (REQ-F-ACC-07/08/
     ParentingValuesHistory,
     ParentingValuesProfile,
 )
+from app.models.work_schedule import WorkSchedule  # noqa: F401  # SCH (REQ-F-SCH-01/03/06)
 
 __all__ = [
     "Base",
@@ -16,4 +17,5 @@ __all__ = [
     "GuardianTag",
     "ParentingValuesHistory",
     "ParentingValuesProfile",
+    "WorkSchedule",
 ]
