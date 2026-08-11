@@ -17,6 +17,7 @@ from app.repositories.care_evaluation_repository import CareEvaluationRepository
 from app.repositories.care_session_repository import CareSessionRepository
 from app.repositories.child_repository import ChildRepository
 from app.repositories.work_schedule_repository import WorkScheduleRepository
+from app.services.trust_level_service import TrustLevelService
 from auth_kit.models import User
 
 PENDING_EVALUATION_MESSAGE = "완료된 세션에 대한 평가를 먼저 제출하세요."
@@ -49,6 +50,7 @@ class CareSessionService:
         self.schedule_repo = WorkScheduleRepository(session)
         self.child_repo = ChildRepository(session)
         self.evaluation_repo = CareEvaluationRepository(session)
+        self.trust_level_service = TrustLevelService(session)
 
     async def create_request(
         self,
@@ -59,12 +61,16 @@ class CareSessionService:
         care_date: date,
         start_slot: int,
         end_slot: int,
+        is_solo: bool = False,
     ) -> CareSession:
         if not (0 <= start_slot < end_slot <= 48):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "요청 구간이 올바르지 않습니다.")
 
         if await self.evaluation_repo.has_pending_evaluation(requester.id):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, PENDING_EVALUATION_MESSAGE)
+
+        if is_solo:
+            await self.trust_level_service.require_l3(requester.id, provider_id)
 
         child = await self.child_repo.get(child_id)
         if child is None or child.user_id != requester.id:
@@ -108,7 +114,7 @@ class CareSessionService:
         if await self.evaluation_repo.has_pending_evaluation(provider.id):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, PENDING_EVALUATION_MESSAGE)
         care_session.status = CareSessionStatus.CONFIRMED
-        # TODO(T-CAR-1→T-TRS-2): 수락 시 양측 신뢰 등급 L1 전이(REQ-F-MAT-07)는 TRS 상태머신 완성 후 연결
+        await self.trust_level_service.grant_l1(care_session.requester_id, care_session.provider_id)
         await self.session.commit()
         await self.session.refresh(care_session)
         return care_session

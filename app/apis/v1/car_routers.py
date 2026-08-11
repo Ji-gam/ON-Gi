@@ -11,6 +11,7 @@ from app.dtos.care_log_dto import CareLogResponse, CareLogUpsert
 from app.dtos.care_session_dto import CareRequestCreate, CareSessionResponse, CheckinRequest
 from app.services.care_log_service import CareLogService
 from app.services.care_session_service import CareSessionService
+from app.services.trust_level_service import TrustLevelService
 from auth_kit.models import User
 
 car_router = APIRouter(prefix="/car", tags=["car"])
@@ -19,12 +20,24 @@ Session = Annotated[AsyncSession, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
+async def guard_solo_request(session: Session, user: CurrentUser, request: CareRequestCreate) -> None:
+    """REQ-F-TRS-04 라우터 레벨 가드. `is_solo=True` 요청은 상대와 L3 관계일 때만 통과한다
+    (서비스 계층과 이중 검증)."""
+    if request.is_solo:
+        await TrustLevelService(session).require_l3(user.id, request.provider_id)
+
+
 @car_router.post(
     "/requests",
     response_model=CareSessionResponse,
     summary="돌봄 요청 생성",
-    description="REQ-F-CAR-01. 제공자가 상보 가능한(제공자 가용+요청자 불가) 구간만 요청할 수 있다.",
-    responses={400: {"description": "상보 가능 시간대가 아니거나 구간·아동 지정이 올바르지 않음"}},
+    description="REQ-F-CAR-01. 제공자가 상보 가능한(제공자 가용+요청자 불가) 구간만 요청할 수 있다. "
+    "REQ-F-TRS-04: `is_solo=True`(단독 위탁) 요청은 상대와 L3 관계가 아니면 403.",
+    responses={
+        400: {"description": "상보 가능 시간대가 아니거나 구간·아동 지정이 올바르지 않음"},
+        403: {"description": "단독 위탁 요청인데 L3 미달"},
+    },
+    dependencies=[Depends(guard_solo_request)],
 )
 async def create_request(session: Session, user: CurrentUser, request: CareRequestCreate) -> CareSessionResponse:
     care_session = await CareSessionService(session).create_request(
@@ -35,6 +48,7 @@ async def create_request(session: Session, user: CurrentUser, request: CareReque
         request.care_date,
         request.start_slot,
         request.end_slot,
+        is_solo=request.is_solo,
     )
     return CareSessionResponse.model_validate(care_session)
 
