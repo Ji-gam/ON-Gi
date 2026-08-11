@@ -1,15 +1,1 @@
-{
-  "T-ACC-1": {
-    "branch": "feature/T-ACC-1-mysql-alembic-erd",
-    "scope": "MySQL 컨테이너 확인 + Alembic 마이그레이션 생성/적용 + ERD.dbml 신규 작성"
-  },
-  "T-ACC-2": {
-    "branch": "feature/T-ACC-2-guardian-profile",
-    "scope": "REQ-F-ACC-04 보호자 프로필 등록(H3 인덱스, 직군, 근무형태, 가구구성, 보유태그)"
-  },
-  "T-ACC-3": {
-    "branch": "feature/T-ACC-3-parenting-values",
-    "scope": "REQ-F-ACC-07/08/10 바움린드 8문항 양육 가치관 진단 + 자유서술 보정(스텁)"
-  }
-}
-
+{}
