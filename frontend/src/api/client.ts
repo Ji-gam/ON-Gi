@@ -17,6 +17,27 @@ interface ValidationErrorItem {
   msg: string;
 }
 
+// 백엔드 DTO 필드명 → 화면 표시용 한글 라벨. 새 필드 추가 시 같이 갱신.
+const FIELD_LABELS: Record<string, string> = {
+  email: "이메일",
+  password: "비밀번호",
+  name: "이름",
+  nickname: "닉네임",
+  birth_date: "생년월일",
+  gender: "성별",
+  phone_number: "휴대폰 번호",
+  code: "인증번호",
+  residence_h3: "거주지",
+  job_category: "직군",
+  work_type: "근무 형태",
+  household_composition: "가구 구성",
+  work_date: "근무일",
+  template: "근무 템플릿",
+  months_old: "개월 수",
+  narrative: "서술",
+  answers: "응답",
+};
+
 function toErrorMessage(detail: unknown, status: number): string {
   if (typeof detail === "string" && detail) return detail;
   if (Array.isArray(detail)) {
@@ -24,9 +45,12 @@ function toErrorMessage(detail: unknown, status: number): string {
       .map((item) => {
         const parts = item.loc.filter((part) => part !== "body");
         const field = parts[parts.length - 1];
-        return field ? `${field}: ${item.msg}` : item.msg;
+        // pydantic v2가 AfterValidator의 ValueError 앞에 붙이는 영문 접두사 제거.
+        const message = item.msg.replace(/^Value error,\s*/, "");
+        const label = typeof field === "string" ? (FIELD_LABELS[field] ?? field) : undefined;
+        return label ? `${label}: ${message}` : message;
       })
-      .join(" ");
+      .join(" / ");
   }
   return `요청을 처리하지 못했습니다. (상태 코드: ${status})`;
 }
