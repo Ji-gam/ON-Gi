@@ -32,12 +32,6 @@ export default {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
       },
       borderRadius: {
         lg: "var(--radius)",

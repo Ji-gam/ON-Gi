@@ -2,9 +2,6 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
@@ -30,12 +27,12 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
-      <h1 className="text-2xl font-bold">ON-Gi 로그인</h1>
-      <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="email">이메일</Label>
-          <Input
+    <main>
+      <h1>ON-Gi 로그인</h1>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label htmlFor="email">이메일</label>
+          <input
             id="email"
             type="email"
             autoComplete="email"
@@ -44,9 +41,9 @@ export default function LoginPage() {
             onChange={(event) => setEmail(event.target.value)}
           />
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="password">비밀번호</Label>
-          <Input
+        <div>
+          <label htmlFor="password">비밀번호</label>
+          <input
             id="password"
             type="password"
             autoComplete="current-password"
@@ -55,10 +52,10 @@ export default function LoginPage() {
             onChange={(event) => setPassword(event.target.value)}
           />
         </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" disabled={isSubmitting}>
+        {error && <p>{error}</p>}
+        <button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "로그인 중..." : "로그인"}
-        </Button>
+        </button>
       </form>
     </main>
   );

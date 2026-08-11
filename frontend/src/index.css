@@ -19,15 +19,6 @@
   --destructive-foreground: 0 0% 100%;
   --border: 340 100% 92%;
   --radius: 1rem;
-  /* shadcn 표준 부품(button/input)이 참조하는 토큰 — 새 색상 대신 기존 팔레트를 재사용 */
-  --input: 340 100% 92%;
-  --ring: 346 100% 72%;
-  --accent: 341 100% 94%;
-  --accent-foreground: 345 10% 32%;
-}
-
-body {
-  @apply bg-background text-foreground;
 }
 
 /* 파일 업로드(복약관리 분석)의 '파일 선택' 버튼 — 브라우저 기본 회색 대신 흰 배경으로 통일 */

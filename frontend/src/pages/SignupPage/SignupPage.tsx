@@ -1,20 +1,9 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import * as authApi from "@/api/auth";
 import { ApiError } from "@/api/client";
 import type { Gender, TermItem } from "@/api/types";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 
 type Step = "phone" | "terms" | "profile";
@@ -129,22 +118,19 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-10">
-      <h1 className="text-2xl font-bold">ON-Gi 회원가입</h1>
-      <p className="text-sm text-muted-foreground">
+    <main>
+      <h1>ON-Gi 회원가입</h1>
+      <p>
         {step === "phone" && "1/3 · 휴대폰 본인확인"}
         {step === "terms" && "2/3 · 약관 동의"}
         {step === "profile" && "3/3 · 가입정보 입력"}
       </p>
 
       {step === "phone" && (
-        <form
-          onSubmit={codeSent ? handleVerifyCode : handleSendCode}
-          className="flex w-full max-w-sm flex-col gap-4"
-        >
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="phone">휴대폰 번호</Label>
-            <Input
+        <form onSubmit={codeSent ? handleVerifyCode : handleSendCode}>
+          <div>
+            <label htmlFor="phone">휴대폰 번호</label>
+            <input
               id="phone"
               type="tel"
               placeholder="010-1234-5678"
@@ -155,9 +141,9 @@ export default function SignupPage() {
             />
           </div>
           {codeSent && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="code">인증번호</Label>
-              <Input
+            <div>
+              <label htmlFor="code">인증번호</label>
+              <input
                 id="code"
                 inputMode="numeric"
                 pattern="\d{6}"
@@ -167,39 +153,40 @@ export default function SignupPage() {
               />
             </div>
           )}
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={isSubmitting}>
+          {error && <p>{error}</p>}
+          <button type="submit" disabled={isSubmitting}>
             {codeSent ? "인증 확인" : "인증번호 받기"}
-          </Button>
+          </button>
         </form>
       )}
 
       {step === "terms" && (
-        <div className="flex w-full max-w-sm flex-col gap-4">
+        <div>
           {terms.map((term) => (
-            <label key={term.terms_type} className="flex items-start gap-2 text-sm">
-              <Checkbox
-                checked={agreedTypes.has(term.terms_type)}
-                onCheckedChange={() => toggleAgreement(term)}
-              />
-              <span>
+            <div key={term.terms_type}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={agreedTypes.has(term.terms_type)}
+                  onChange={() => toggleAgreement(term)}
+                />
                 {term.is_required ? "[필수] " : "[선택] "}
                 {term.title}
-              </span>
-            </label>
+              </label>
+            </div>
           ))}
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="button" disabled={!requiredAgreed} onClick={handleTermsNext}>
+          {error && <p>{error}</p>}
+          <button type="button" disabled={!requiredAgreed} onClick={handleTermsNext}>
             다음
-          </Button>
+          </button>
         </div>
       )}
 
       {step === "profile" && (
-        <form onSubmit={handleSignup} className="flex w-full max-w-sm flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="email">이메일</Label>
-            <Input
+        <form onSubmit={handleSignup}>
+          <div>
+            <label htmlFor="email">이메일</label>
+            <input
               id="email"
               type="email"
               required
@@ -207,9 +194,9 @@ export default function SignupPage() {
               onChange={(event) => setEmail(event.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password">비밀번호</Label>
-            <Input
+          <div>
+            <label htmlFor="password">비밀번호</label>
+            <input
               id="password"
               type="password"
               required
@@ -217,27 +204,27 @@ export default function SignupPage() {
               onChange={(event) => setPassword(event.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="name">이름</Label>
-            <Input
+          <div>
+            <label htmlFor="name">이름</label>
+            <input
               id="name"
               required
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nickname">닉네임</Label>
-            <Input
+          <div>
+            <label htmlFor="nickname">닉네임</label>
+            <input
               id="nickname"
               required
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="birthDate">생년월일</Label>
-            <Input
+          <div>
+            <label htmlFor="birthDate">생년월일</label>
+            <input
               id="birthDate"
               type="date"
               required
@@ -245,22 +232,27 @@ export default function SignupPage() {
               onChange={(event) => setBirthDate(event.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="gender">성별</Label>
-            <Select value={gender} onValueChange={(value) => setGender(value as Gender)}>
-              <SelectTrigger id="gender">
-                <SelectValue placeholder="선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="M">남성</SelectItem>
-                <SelectItem value="F">여성</SelectItem>
-              </SelectContent>
-            </Select>
+          <div>
+            <label htmlFor="gender">성별</label>
+            <select
+              id="gender"
+              required
+              value={gender}
+              onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+                setGender(event.target.value as Gender)
+              }
+            >
+              <option value="" disabled>
+                선택
+              </option>
+              <option value="M">남성</option>
+              <option value="F">여성</option>
+            </select>
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={isSubmitting || !gender}>
+          {error && <p>{error}</p>}
+          <button type="submit" disabled={isSubmitting || !gender}>
             {isSubmitting ? "가입 중..." : "가입 완료"}
-          </Button>
+          </button>
         </form>
       )}
     </main>
