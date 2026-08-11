@@ -6,26 +6,25 @@ import { ApiError } from "@/api/client";
 import type { Gender, TermItem } from "@/api/types";
 import { useAuth } from "@/hooks/useAuth";
 
-type Step = "phone" | "terms" | "profile";
-
 export default function SignupPage() {
   const { applySession } = useAuth();
   const navigate = useNavigate();
 
-  const [step, setStep] = useState<Step>("phone");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 1단계: 휴대폰 본인확인
+  // 휴대폰 본인확인
   const [phoneNumber, setPhoneNumber] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState("");
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
 
-  // 2단계: 약관 동의
+  // 약관 동의
   const [terms, setTerms] = useState<TermItem[]>([]);
   const [agreedTypes, setAgreedTypes] = useState<Set<string>>(new Set());
 
-  // 3단계: 가입정보
+  // 가입정보
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -34,14 +33,13 @@ export default function SignupPage() {
   const [gender, setGender] = useState<Gender | "">("");
 
   useEffect(() => {
-    if (step !== "terms" || terms.length > 0) return;
     authApi
       .getTerms()
       .then((res) => setTerms(res.terms))
       .catch((err) =>
         setError(err instanceof ApiError ? err.message : "약관을 불러오지 못했습니다."),
       );
-  }, [step, terms.length]);
+  }, []);
 
   function toggleAgreement(term: TermItem) {
     setAgreedTypes((prev) => {
@@ -56,37 +54,30 @@ export default function SignupPage() {
     .filter((t) => t.is_required)
     .every((t) => agreedTypes.has(t.terms_type));
 
-  async function handleSendCode(event: FormEvent) {
-    event.preventDefault();
+  async function handleSendCode() {
     setError(null);
-    setIsSubmitting(true);
+    setIsVerifyingPhone(true);
     try {
       await authApi.requestPhoneVerification(phoneNumber);
       setCodeSent(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "인증 코드 발송에 실패했습니다.");
     } finally {
-      setIsSubmitting(false);
+      setIsVerifyingPhone(false);
     }
   }
 
-  async function handleVerifyCode(event: FormEvent) {
-    event.preventDefault();
+  async function handleVerifyCode() {
     setError(null);
-    setIsSubmitting(true);
+    setIsVerifyingPhone(true);
     try {
       await authApi.verifyPhone({ phone_number: phoneNumber, code });
-      setStep("terms");
+      setPhoneVerified(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "인증에 실패했습니다.");
     } finally {
-      setIsSubmitting(false);
+      setIsVerifyingPhone(false);
     }
-  }
-
-  function handleTermsNext() {
-    setError(null);
-    setStep("profile");
   }
 
   async function handleSignup(event: FormEvent) {
@@ -117,17 +108,14 @@ export default function SignupPage() {
     }
   }
 
+  const canSubmit = phoneVerified && requiredAgreed && !!gender && !isSubmitting;
+
   return (
     <main>
       <h1>ON-Gi 회원가입</h1>
-      <p>
-        {step === "phone" && "1/3 · 휴대폰 본인확인"}
-        {step === "terms" && "2/3 · 약관 동의"}
-        {step === "profile" && "3/3 · 가입정보 입력"}
-      </p>
-
-      {step === "phone" && (
-        <form onSubmit={codeSent ? handleVerifyCode : handleSendCode}>
+      <form onSubmit={handleSignup}>
+        <fieldset>
+          <legend>휴대폰 본인확인</legend>
           <div>
             <label htmlFor="phone">휴대폰 번호</label>
             <input
@@ -135,12 +123,19 @@ export default function SignupPage() {
               type="tel"
               placeholder="010-1234-5678"
               required
-              disabled={codeSent}
+              disabled={phoneVerified}
               value={phoneNumber}
               onChange={(event) => setPhoneNumber(event.target.value)}
             />
+            <button
+              type="button"
+              disabled={isVerifyingPhone || phoneVerified || !phoneNumber}
+              onClick={handleSendCode}
+            >
+              인증번호 받기
+            </button>
           </div>
-          {codeSent && (
+          {codeSent && !phoneVerified && (
             <div>
               <label htmlFor="code">인증번호</label>
               <input
@@ -151,17 +146,16 @@ export default function SignupPage() {
                 value={code}
                 onChange={(event) => setCode(event.target.value)}
               />
+              <button type="button" disabled={isVerifyingPhone} onClick={handleVerifyCode}>
+                인증 확인
+              </button>
             </div>
           )}
-          {error && <p>{error}</p>}
-          <button type="submit" disabled={isSubmitting}>
-            {codeSent ? "인증 확인" : "인증번호 받기"}
-          </button>
-        </form>
-      )}
+          {phoneVerified && <p>휴대폰 본인확인이 완료되었습니다.</p>}
+        </fieldset>
 
-      {step === "terms" && (
-        <div>
+        <fieldset>
+          <legend>약관 동의</legend>
           {terms.map((term) => (
             <div key={term.terms_type}>
               <label>
@@ -175,15 +169,10 @@ export default function SignupPage() {
               </label>
             </div>
           ))}
-          {error && <p>{error}</p>}
-          <button type="button" disabled={!requiredAgreed} onClick={handleTermsNext}>
-            다음
-          </button>
-        </div>
-      )}
+        </fieldset>
 
-      {step === "profile" && (
-        <form onSubmit={handleSignup}>
+        <fieldset>
+          <legend>가입정보</legend>
           <div>
             <label htmlFor="email">이메일</label>
             <input
@@ -249,12 +238,13 @@ export default function SignupPage() {
               <option value="F">여성</option>
             </select>
           </div>
-          {error && <p>{error}</p>}
-          <button type="submit" disabled={isSubmitting || !gender}>
-            {isSubmitting ? "가입 중..." : "가입 완료"}
-          </button>
-        </form>
-      )}
+        </fieldset>
+
+        {error && <p>{error}</p>}
+        <button type="submit" disabled={!canSubmit}>
+          {isSubmitting ? "가입 중..." : "가입하기"}
+        </button>
+      </form>
       <p>
         이미 계정이 있으신가요? <Link to="/login">로그인</Link>
       </p>
