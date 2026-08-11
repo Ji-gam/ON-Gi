@@ -145,3 +145,8 @@ ignore_missing_imports = true
 # firebase-admin은 py.typed 마커가 없어 mypy가 스텁을 못 찾는다(celery와 동일한 이유).
 module = ["firebase_admin", "firebase_admin.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# h3(h3-py)도 py.typed 마커/스텁을 제공하지 않는다(celery와 동일한 이유).
+module = ["h3"]
+ignore_missing_imports = true
