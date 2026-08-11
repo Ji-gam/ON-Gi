@@ -53,6 +53,7 @@ app = [
     "fastapi[standard]>=0.128.0",
     # FCM(Firebase Cloud Messaging) - 웹/네이티브 공통 발송 채널(app/services/push_service.py).
     "firebase-admin>=7.5.0",
+    "h3>=4.4.0",  # REQ-F-ACC-04 거주지 H3 인덱스 검증
     "httpx>=0.28.1",
     "orjson>=3.11.5",
     "passlib[bcrypt]>=1.7.4",
