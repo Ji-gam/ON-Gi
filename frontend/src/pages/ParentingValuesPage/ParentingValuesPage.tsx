@@ -1,5 +1,4 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import * as parentingValuesApi from "@/api/parentingValues";
@@ -72,16 +71,7 @@ export default function ParentingValuesPage() {
     }
   }
 
-  if (!accessToken) {
-    return (
-      <main>
-        <h1>양육 가치관 진단</h1>
-        <p>
-          로그인이 필요합니다. <Link to="/login">로그인</Link>
-        </p>
-      </main>
-    );
-  }
+  if (!accessToken) return null;
 
   const allAnswered = !!questions && questions.every((q) => answers[q.index] != null);
 

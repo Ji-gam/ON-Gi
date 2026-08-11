@@ -1,5 +1,4 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import * as guardianProfileApi from "@/api/guardianProfile";
@@ -108,16 +107,7 @@ export default function GuardianProfilePage() {
     }
   }
 
-  if (!accessToken) {
-    return (
-      <main>
-        <h1>보호자 프로필</h1>
-        <p>
-          로그인이 필요합니다. <Link to="/login">로그인</Link>
-        </p>
-      </main>
-    );
-  }
+  if (!accessToken) return null;
 
   if (isLoading) {
     return (

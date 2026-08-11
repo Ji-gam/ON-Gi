@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,6 +7,8 @@ import { useAuth } from "@/hooks/useAuth";
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,7 +20,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await login(email, password);
-      navigate("/");
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "로그인에 실패했습니다.");
     } finally {
