@@ -13,9 +13,9 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 휴대폰 번호/인증번호 — 알림(SMS) 발송 연동 전까지는 입력만 받는다(실제 인증 API 호출 없음).
+  // 휴대폰 번호 — 알림(SMS) 발송 연동 전까지는 입력만 받는다(실제 인증 API 호출 없음).
+  // 인증번호는 발송 자체가 없어 입력할 값이 없으므로 필드를 비활성화해둔다.
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [code, setCode] = useState("");
 
   // 약관 동의
   const [terms, setTerms] = useState<TermItem[]>([]);
@@ -101,13 +101,7 @@ export default function SignupPage() {
           </div>
           <div>
             <label htmlFor="code">인증번호</label>
-            <input
-              id="code"
-              inputMode="numeric"
-              pattern="\d{6}"
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-            />
+            <input id="code" inputMode="numeric" pattern="\d{6}" disabled />
           </div>
         </fieldset>
 
