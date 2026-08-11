@@ -20,3 +20,49 @@ export interface LoginRequest {
   email: string;
   password: string;
 }
+
+export type Gender = "M" | "F";
+
+export interface TermItem {
+  terms_type: string;
+  version: string;
+  title: string;
+  url: string;
+  is_required: boolean;
+  revocable: boolean;
+}
+
+export interface TermsListResponse {
+  terms: TermItem[];
+}
+
+export interface TermAgreementItem {
+  terms_type: string;
+  version: string;
+  agreed: boolean;
+}
+
+export interface PhoneVerificationRequest {
+  phone_number: string;
+}
+
+export interface PhoneVerificationResponse {
+  verification_sent: boolean;
+  message: string;
+}
+
+export interface PhoneVerificationConfirmRequest {
+  phone_number: string;
+  code: string;
+}
+
+export interface SignupRequest {
+  email: string;
+  password: string;
+  name: string;
+  nickname: string;
+  birth_date: string;
+  gender: Gender;
+  phone_number: string;
+  agreements: TermAgreementItem[];
+}

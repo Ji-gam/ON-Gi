@@ -20,7 +20,13 @@ interface ValidationErrorItem {
 function toErrorMessage(detail: unknown): string {
   if (typeof detail === "string") return detail;
   if (Array.isArray(detail)) {
-    return (detail as ValidationErrorItem[]).map((item) => item.msg).join(" ");
+    return (detail as ValidationErrorItem[])
+      .map((item) => {
+        const parts = item.loc.filter((part) => part !== "body");
+        const field = parts[parts.length - 1];
+        return field ? `${field}: ${item.msg}` : item.msg;
+      })
+      .join(" ");
   }
   return "요청을 처리하지 못했습니다.";
 }
