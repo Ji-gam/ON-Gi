@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -57,6 +57,9 @@ export default function LoginPage() {
           {isSubmitting ? "로그인 중..." : "로그인"}
         </button>
       </form>
+      <p>
+        계정이 없으신가요? <Link to="/signup">회원가입</Link>
+      </p>
     </main>
   );
 }
