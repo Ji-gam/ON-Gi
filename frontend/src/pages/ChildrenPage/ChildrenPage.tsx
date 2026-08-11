@@ -1,5 +1,4 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 
 import * as childrenApi from "@/api/children";
 import type { ChildGender, ChildResponse } from "@/api/childrenTypes";
@@ -72,16 +71,7 @@ export default function ChildrenPage() {
     }
   }
 
-  if (!accessToken) {
-    return (
-      <main>
-        <h1>아동 관리</h1>
-        <p>
-          로그인이 필요합니다. <Link to="/login">로그인</Link>
-        </p>
-      </main>
-    );
-  }
+  if (!accessToken) return null;
 
   return (
     <main>

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import * as matchingApi from "@/api/matching";
@@ -21,16 +20,7 @@ export default function MatchingPage() {
       );
   }, [accessToken]);
 
-  if (!accessToken) {
-    return (
-      <main>
-        <h1>매칭 후보</h1>
-        <p>
-          로그인이 필요합니다. <Link to="/login">로그인</Link>
-        </p>
-      </main>
-    );
-  }
+  if (!accessToken) return null;
 
   return (
     <main>

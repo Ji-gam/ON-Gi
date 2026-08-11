@@ -1,5 +1,4 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import * as workScheduleApi from "@/api/workSchedule";
@@ -51,16 +50,7 @@ export default function WorkSchedulePage() {
     }
   }
 
-  if (!accessToken) {
-    return (
-      <main>
-        <h1>근무표</h1>
-        <p>
-          로그인이 필요합니다. <Link to="/login">로그인</Link>
-        </p>
-      </main>
-    );
-  }
+  if (!accessToken) return null;
 
   return (
     <main>
