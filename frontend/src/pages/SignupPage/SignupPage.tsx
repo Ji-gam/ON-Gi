@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import * as authApi from "@/api/auth";
 import { ApiError } from "@/api/client";
@@ -255,6 +255,9 @@ export default function SignupPage() {
           </button>
         </form>
       )}
+      <p>
+        이미 계정이 있으신가요? <Link to="/login">로그인</Link>
+      </p>
     </main>
   );
 }
