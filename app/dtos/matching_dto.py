@@ -9,4 +9,6 @@ class CandidateResponse(BaseModel):
     complementary_score: float = Field(description="상보 스코어(35% 가중치 반영 전 원점수), 0~1")
     distance_m: float = Field(description="거주지 간 실거리(m)")
     age_similarity: float = Field(description="아동 개월 수 유사도, 0~1")
-    trust_score: float = Field(description="신뢰 점수(TRS 도메인 미구현 - 스텁 고정값)")
+    trust_score: float = Field(description="신뢰 점수(REQ-F-TRS-06/08 가중합), 0~1")
+    average_rating: float | None = Field(default=None, description="REQ-F-TRS-07 별점 평균, 평가 없으면 null")
+    top_tags: list[str] = Field(default_factory=list, description="REQ-F-TRS-07 후기 태그 상위 3개")

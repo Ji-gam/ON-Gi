@@ -13,10 +13,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.utils.schedule_slots import FULL_AVAILABLE_MASK
 from app.models.care_session import CareSession, CareSessionStatus
+from app.repositories.care_evaluation_repository import CareEvaluationRepository
 from app.repositories.care_session_repository import CareSessionRepository
 from app.repositories.child_repository import ChildRepository
 from app.repositories.work_schedule_repository import WorkScheduleRepository
 from auth_kit.models import User
+
+PENDING_EVALUATION_MESSAGE = "완료된 세션에 대한 평가를 먼저 제출하세요."
 
 CHECKIN_RADIUS_M = 200.0  # 요구사항정의서에 수치 미명시 - 임의 가정(REQ-F-CAR-03)
 
@@ -45,6 +48,7 @@ class CareSessionService:
         self.repo = CareSessionRepository(session)
         self.schedule_repo = WorkScheduleRepository(session)
         self.child_repo = ChildRepository(session)
+        self.evaluation_repo = CareEvaluationRepository(session)
 
     async def create_request(
         self,
@@ -58,6 +62,9 @@ class CareSessionService:
     ) -> CareSession:
         if not (0 <= start_slot < end_slot <= 48):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "요청 구간이 올바르지 않습니다.")
+
+        if await self.evaluation_repo.has_pending_evaluation(requester.id):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, PENDING_EVALUATION_MESSAGE)
 
         child = await self.child_repo.get(child_id)
         if child is None or child.user_id != requester.id:
@@ -98,6 +105,8 @@ class CareSessionService:
 
     async def accept(self, session_id: int, provider: User) -> CareSession:
         care_session = await self._get_requested_session(session_id, provider)
+        if await self.evaluation_repo.has_pending_evaluation(provider.id):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, PENDING_EVALUATION_MESSAGE)
         care_session.status = CareSessionStatus.CONFIRMED
         # TODO(T-CAR-1→T-TRS-2): 수락 시 양측 신뢰 등급 L1 전이(REQ-F-MAT-07)는 TRS 상태머신 완성 후 연결
         await self.session.commit()

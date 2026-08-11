@@ -16,7 +16,6 @@ from app.core.utils.guardian_tags import MANDATORY_GUARDIAN_TAG_CODES
 from app.core.utils.matching_weights import (
     MAX_AGE_DIFF_MONTHS,
     MAX_DISTANCE_M,
-    STUB_TRUST_SCORE,
     WEIGHT_AGE_SIMILARITY,
     WEIGHT_COMPLEMENTARY,
     WEIGHT_DISTANCE,
@@ -25,10 +24,12 @@ from app.core.utils.matching_weights import (
 )
 from app.core.utils.schedule_slots import FULL_AVAILABLE_MASK, SLOT_COUNT, complementary_slot_counts
 from app.models.children import Child
+from app.repositories.care_evaluation_repository import CareEvaluationRepository
 from app.repositories.child_repository import ChildRepository
 from app.repositories.guardian_profile_repository import GuardianProfileRepository
 from app.repositories.parenting_values_repository import ParentingValuesRepository
 from app.repositories.work_schedule_repository import WorkScheduleRepository
+from app.services.trust_score_service import TrustScoreService
 from auth_kit.models import User
 
 _MAX_VALUES_DISTANCE = math.sqrt(4**2 + 4**2)  # warmth/control 각 1~5점 범위의 최대 유클리드 거리
@@ -44,6 +45,8 @@ class MatchCandidate:
     distance_m: float
     age_similarity: float
     trust_score: float
+    average_rating: float | None
+    top_tags: list[str]
 
 
 def _clamp(value: float, lo: float = 0.0, hi: float = 1.0) -> float:
@@ -83,6 +86,8 @@ class MatchingService:
         self.values_repo = ParentingValuesRepository(session)
         self.schedule_repo = WorkScheduleRepository(session)
         self.child_repo = ChildRepository(session)
+        self.evaluation_repo = CareEvaluationRepository(session)
+        self.trust_score_service = TrustScoreService(session)
 
     async def find_candidates(self, user: User, for_date: date) -> list[MatchCandidate]:
         own_profile = await self.guardian_repo.get(user.id)
@@ -132,14 +137,19 @@ class MatchingService:
                 age_similarity = _clamp(1 - abs(own_avg_months - candidate_avg_months) / MAX_AGE_DIFF_MONTHS)
 
             distance_score = _clamp(1 - distance_m / MAX_DISTANCE_M)
+            trust_score = await self.trust_score_service.calculate_score(candidate_user.id)
 
             total_score = (
                 WEIGHT_VALUES_SIMILARITY * values_similarity
                 + WEIGHT_COMPLEMENTARY * complementary_score
                 + WEIGHT_DISTANCE * distance_score
                 + WEIGHT_AGE_SIMILARITY * age_similarity
-                + WEIGHT_TRUST * STUB_TRUST_SCORE
+                + WEIGHT_TRUST * trust_score
             )
+
+            ratings = await self.evaluation_repo.list_ratings_for_evaluatee(candidate_user.id)
+            average_rating = sum(ratings) / len(ratings) if ratings else None
+            top_tags = await self.evaluation_repo.top_tags_for_evaluatee(candidate_user.id)
 
             candidates.append(
                 MatchCandidate(
@@ -150,7 +160,9 @@ class MatchingService:
                     complementary_score=complementary_score,
                     distance_m=distance_m,
                     age_similarity=age_similarity,
-                    trust_score=STUB_TRUST_SCORE,
+                    trust_score=trust_score,
+                    average_rating=average_rating,
+                    top_tags=top_tags,
                 )
             )
 
