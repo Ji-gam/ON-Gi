@@ -19,3 +19,8 @@ class GuardianProfileRepository:
         await self.session.execute(delete(GuardianTag).where(GuardianTag.user_id == user_id))
         for code in tag_codes:
             self.session.add(GuardianTag(user_id=user_id, tag_code=code))
+
+    async def list_all_except(self, user_id: int) -> list[GuardianProfile]:
+        """REQ-F-MAT-01/02/03. 매칭 후보 탐색용 - 본인을 제외한 전체 등록 프로필."""
+        rows = await self.session.scalars(select(GuardianProfile).where(GuardianProfile.user_id != user_id))
+        return list(rows.all())
