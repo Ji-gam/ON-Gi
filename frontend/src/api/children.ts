@@ -9,7 +9,11 @@ export function createChild(
   request: ChildCreateRequest,
   accessToken: string,
 ): Promise<ChildDetailResponse> {
-  return apiRequest<ChildDetailResponse>("/acc/children", { method: "POST", body: request, accessToken });
+  return apiRequest<ChildDetailResponse>("/acc/children", {
+    method: "POST",
+    body: request,
+    accessToken,
+  });
 }
 
 export function deleteChild(childId: number, accessToken: string): Promise<void> {

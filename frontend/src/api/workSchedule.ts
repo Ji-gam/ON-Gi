@@ -5,7 +5,11 @@ export function registerShift(
   request: ShiftRegisterRequest,
   accessToken: string,
 ): Promise<WorkScheduleResponse[]> {
-  return apiRequest<WorkScheduleResponse[]>("/sch/schedule", { method: "PUT", body: request, accessToken });
+  return apiRequest<WorkScheduleResponse[]>("/sch/schedule", {
+    method: "PUT",
+    body: request,
+    accessToken,
+  });
 }
 
 export function getSchedule(

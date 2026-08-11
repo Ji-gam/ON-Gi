@@ -16,7 +16,9 @@ export default function MatchingPage() {
     matchingApi
       .getCandidates(accessToken)
       .then(setCandidates)
-      .catch((err) => setError(err instanceof ApiError ? err.message : "후보를 불러오지 못했습니다."));
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : "후보를 불러오지 못했습니다."),
+      );
   }, [accessToken]);
 
   if (!accessToken) {
@@ -41,8 +43,8 @@ export default function MatchingPage() {
           {candidates.map((candidate) => (
             <li key={candidate.user_id}>
               {candidate.nickname} · 총점 {candidate.total_score.toFixed(2)} · 가치관유사도{" "}
-              {candidate.values_similarity.toFixed(2)} · 상보스코어 {candidate.complementary_score.toFixed(2)}{" "}
-              · 거리 {Math.round(candidate.distance_m)}m
+              {candidate.values_similarity.toFixed(2)} · 상보스코어{" "}
+              {candidate.complementary_score.toFixed(2)} · 거리 {Math.round(candidate.distance_m)}m
             </li>
           ))}
         </ul>

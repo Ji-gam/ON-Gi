@@ -20,7 +20,9 @@ export default function ParentingValuesPage() {
     parentingValuesApi
       .getQuestions()
       .then(setQuestions)
-      .catch((err) => setError(err instanceof ApiError ? err.message : "문항을 불러오지 못했습니다."));
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : "문항을 불러오지 못했습니다."),
+      );
   }, []);
 
   useEffect(() => {
@@ -43,7 +45,10 @@ export default function ParentingValuesPage() {
     setIsSubmittingQuestionnaire(true);
     try {
       const orderedAnswers = questions.map((q) => answers[q.index]);
-      const res = await parentingValuesApi.submitQuestionnaire({ answers: orderedAnswers }, accessToken);
+      const res = await parentingValuesApi.submitQuestionnaire(
+        { answers: orderedAnswers },
+        accessToken,
+      );
       setResult(res);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "제출에 실패했습니다.");

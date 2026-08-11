@@ -24,7 +24,9 @@ export default function ChildrenPage() {
     childrenApi
       .listChildren(accessToken)
       .then(setChildren)
-      .catch((err) => setError(err instanceof ApiError ? err.message : "목록을 불러오지 못했습니다."));
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : "목록을 불러오지 못했습니다."),
+      );
   }, [accessToken]);
 
   async function handleCreate(event: FormEvent) {
@@ -144,7 +146,11 @@ export default function ChildrenPage() {
           </div>
           <div>
             <label htmlFor="allergies">알레르기</label>
-            <input id="allergies" value={allergies} onChange={(event) => setAllergies(event.target.value)} />
+            <input
+              id="allergies"
+              value={allergies}
+              onChange={(event) => setAllergies(event.target.value)}
+            />
           </div>
           <div>
             <label htmlFor="conditions">지병</label>

@@ -183,7 +183,9 @@ export default function GuardianProfilePage() {
             id="householdComposition"
             required
             value={householdComposition}
-            onChange={(event) => setHouseholdComposition(event.target.value as HouseholdComposition)}
+            onChange={(event) =>
+              setHouseholdComposition(event.target.value as HouseholdComposition)
+            }
           >
             <option value="" disabled>
               선택

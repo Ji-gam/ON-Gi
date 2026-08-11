@@ -13,13 +13,7 @@ export type JobCategory =
   | "OTHER";
 
 export type WorkType =
-  | "FULL_TIME"
-  | "SHIFT"
-  | "FLEXIBLE"
-  | "REMOTE"
-  | "FREELANCE"
-  | "UNEMPLOYED"
-  | "OTHER";
+  "FULL_TIME" | "SHIFT" | "FLEXIBLE" | "REMOTE" | "FREELANCE" | "UNEMPLOYED" | "OTHER";
 
 export type HouseholdComposition = "TWO_PARENT" | "SINGLE_PARENT" | "EXTENDED_FAMILY" | "OTHER";
 

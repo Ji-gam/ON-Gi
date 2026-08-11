@@ -26,7 +26,9 @@ export default function WorkSchedulePage() {
     workScheduleApi
       .getSchedule(today(), undefined, accessToken)
       .then(setSchedule)
-      .catch((err) => setError(err instanceof ApiError ? err.message : "근무표를 불러오지 못했습니다."));
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : "근무표를 불러오지 못했습니다."),
+      );
   }
 
   useEffect(loadSchedule, [accessToken]);
