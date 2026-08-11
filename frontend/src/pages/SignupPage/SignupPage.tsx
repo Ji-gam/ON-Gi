@@ -13,12 +13,9 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 휴대폰 본인확인
+  // 휴대폰 번호/인증번호 — 알림(SMS) 발송 연동 전까지는 입력만 받는다(실제 인증 API 호출 없음).
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState("");
-  const [phoneVerified, setPhoneVerified] = useState(false);
-  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
 
   // 약관 동의
   const [terms, setTerms] = useState<TermItem[]>([]);
@@ -54,32 +51,6 @@ export default function SignupPage() {
     .filter((t) => t.is_required)
     .every((t) => agreedTypes.has(t.terms_type));
 
-  async function handleSendCode() {
-    setError(null);
-    setIsVerifyingPhone(true);
-    try {
-      await authApi.requestPhoneVerification(phoneNumber);
-      setCodeSent(true);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "인증 코드 발송에 실패했습니다.");
-    } finally {
-      setIsVerifyingPhone(false);
-    }
-  }
-
-  async function handleVerifyCode() {
-    setError(null);
-    setIsVerifyingPhone(true);
-    try {
-      await authApi.verifyPhone({ phone_number: phoneNumber, code });
-      setPhoneVerified(true);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "인증에 실패했습니다.");
-    } finally {
-      setIsVerifyingPhone(false);
-    }
-  }
-
   async function handleSignup(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -108,7 +79,7 @@ export default function SignupPage() {
     }
   }
 
-  const canSubmit = phoneVerified && requiredAgreed && !!gender && !isSubmitting;
+  const canSubmit = requiredAgreed && !!gender && !isSubmitting;
 
   return (
     <main>
@@ -116,6 +87,7 @@ export default function SignupPage() {
       <form onSubmit={handleSignup}>
         <fieldset>
           <legend>휴대폰 본인확인</legend>
+          <p>알림(SMS) 인증 연동 전까지는 입력만 받습니다.</p>
           <div>
             <label htmlFor="phone">휴대폰 번호</label>
             <input
@@ -123,35 +95,20 @@ export default function SignupPage() {
               type="tel"
               placeholder="010-1234-5678"
               required
-              disabled={phoneVerified}
               value={phoneNumber}
               onChange={(event) => setPhoneNumber(event.target.value)}
             />
-            <button
-              type="button"
-              disabled={isVerifyingPhone || phoneVerified || !phoneNumber}
-              onClick={handleSendCode}
-            >
-              인증번호 받기
-            </button>
           </div>
-          {codeSent && !phoneVerified && (
-            <div>
-              <label htmlFor="code">인증번호</label>
-              <input
-                id="code"
-                inputMode="numeric"
-                pattern="\d{6}"
-                required
-                value={code}
-                onChange={(event) => setCode(event.target.value)}
-              />
-              <button type="button" disabled={isVerifyingPhone} onClick={handleVerifyCode}>
-                인증 확인
-              </button>
-            </div>
-          )}
-          {phoneVerified && <p>휴대폰 본인확인이 완료되었습니다.</p>}
+          <div>
+            <label htmlFor="code">인증번호</label>
+            <input
+              id="code"
+              inputMode="numeric"
+              pattern="\d{6}"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+            />
+          </div>
         </fieldset>
 
         <fieldset>
