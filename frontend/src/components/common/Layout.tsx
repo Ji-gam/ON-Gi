@@ -1,7 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
 
-import { cn } from "@/lib/utils";
-
 const NAV_ITEMS = [
   { to: "/", label: "홈" },
   { to: "/children", label: "아동 관리" },
@@ -14,17 +12,10 @@ const NAV_ITEMS = [
 // 로그인 필요 라우트 공통 뼈대 — 실제 인증 게이트(RequireAuth)는 T-ACC-1 프론트 연동 시 추가.
 export default function Layout() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <nav className="flex flex-wrap gap-4 border-b border-border px-4 py-3">
+    <div>
+      <nav>
         {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === "/"}
-            className={({ isActive }) =>
-              cn("text-sm", isActive ? "font-semibold text-primary" : "text-muted-foreground")
-            }
-          >
+          <NavLink key={item.to} to={item.to} end={item.to === "/"}>
             {item.label}
           </NavLink>
         ))}
