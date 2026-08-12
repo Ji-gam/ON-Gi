@@ -9,14 +9,13 @@
         "dev"
       ],
       "cwd": "frontend",
-      "port": 5174
+      "port": 5174,
+      "autoPort": true
     },
     {
       "name": "backend",
-      "runtimeExecutable": "env",
+      "runtimeExecutable": "uv",
       "runtimeArgs": [
-        "DB_HOST=localhost",
-        "uv",
         "run",
         "uvicorn",
         "app.main:app",
@@ -24,7 +23,8 @@
         "--port",
         "8010"
       ],
-      "port": 8010
+      "port": 8010,
+      "autoPort": true
     }
   ]
 }
