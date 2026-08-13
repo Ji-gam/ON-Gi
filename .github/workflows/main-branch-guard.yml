@@ -7,9 +7,12 @@ jobs:
   check-source-branch:
     runs-on: ubuntu-latest
     steps:
-      - name: head 브랜치가 Release/* 인지 확인
+      - name: head 브랜치가 release 계열인지 확인
         run: |
-          if [[ "${{ github.head_ref }}" != Release/* ]]; then
-            echo "main으로의 PR은 Release/* 브랜치에서만 가능합니다. (head: ${{ github.head_ref }})"
-            exit 1
-          fi
+          case "${{ github.head_ref }}" in
+            release|release/*|Release|Release/*) ;;
+            *)
+              echo "main으로의 PR은 release 또는 release/* 브랜치에서만 가능합니다. (head: ${{ github.head_ref }})"
+              exit 1
+              ;;
+          esac

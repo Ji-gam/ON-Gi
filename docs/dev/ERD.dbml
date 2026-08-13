@@ -1,0 +1,362 @@
+// ERD.dbml v1.8 · docs/CODING_RULES.md §6(ERD 동기화 규칙) canonical 산출물
+// DB CRUD 작업(모델 추가/변경, 마이그레이션 작성)마다 같은 커밋/PR에서 이 파일도 갱신 + 버전접미사 상향.
+// 대상 마이그레이션: app/core/db/migrations/versions/ff9d99f5db23_auth_kit_children_초기_스키마.py
+//                   app/core/db/migrations/versions/9d344b799f53_guardian_profile.py (T-ACC-2)
+//                   app/core/db/migrations/versions/18d4663fd949_parenting_values.py (T-ACC-3)
+//                   app/core/db/migrations/versions/80ee98f59f34_work_schedule.py (T-SCH-1)
+//                   app/core/db/migrations/versions/a1f3c9d0e2b6_care_session.py (T-CAR-1)
+//                   app/core/db/migrations/versions/b7e4d1a08c53_care_checkin_journal.py (T-CAR-2)
+//                   app/core/db/migrations/versions/c2d5e9f7a1b4_trust_evaluation.py (T-TRS-1)
+//                   app/core/db/migrations/versions/d3f6a2c9e8b1_trust_level_fsm.py (T-TRS-2)
+//                   app/core/db/migrations/versions/e4a7b1d0c9f2_point_ledger.py (T-PNT-1)
+// 소유: auth_kit(회원가입/인증) + app/models/children.py(T-ACC-1) + app/models/guardian_profile.py(T-ACC-2)
+//      + app/models/parenting_values.py(T-ACC-3, 접두어 acc_*) + app/models/work_schedule.py(T-SCH-1, 접두어 sch_*)
+//      + app/models/care_session.py + app/models/care_log.py(T-CAR-1/2, 접두어 car_*)
+//      + app/models/care_evaluation.py + app/models/trust_weights.py(T-TRS-1, 접두어 trs_*)
+//      + app/models/trust_level.py + app/models/joint_care_session.py + app/models/trust_settings.py(T-TRS-2)
+//      + app/models/point_account.py + app/models/point_ledger.py(T-PNT-1, 접두어 pnt_*)
+
+Table users {
+  id bigint [pk, increment]
+  email varchar(254) [unique, note: '소셜/게스트 계정은 null 가능']
+  password_hash varchar(255) [note: '소셜/게스트 계정은 null']
+  name varchar(512) [note: 'EncryptedStr(Fernet) 컬럼단위 암호화']
+  nickname varchar(12) [unique, not null]
+  phone_number varchar(512) [note: 'EncryptedStr, 원문은 검색 불가']
+  phone_hash varchar(64) [note: '조회/중복확인용 단방향 해시, indexed']
+  birth_date date
+  gender varchar(1) [note: 'enum: M/F']
+  onboarding_status varchar(20) [not null, default: 'pending', note: 'enum: pending/terms_agreed/profile_required/completed']
+  email_verified boolean [not null, default: false]
+  phone_verified boolean [not null, default: false, note: 'REQ-F-ACC-01']
+  is_active boolean [not null, default: true]
+  is_admin boolean [not null, default: false]
+  is_sanctioned boolean [not null, default: false, note: 'REQ-F-ACC-11']
+  sanction_reason varchar(500)
+  is_guest boolean [not null, default: false]
+  failed_login_attempts int [not null, default: 0]
+  locked_until timestamp
+  last_login_at timestamp
+  deactivated_at timestamp [note: '탈퇴 신청 시각']
+  purge_at timestamp [note: '물리삭제 예정 시각, indexed']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table social_accounts {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  provider varchar(20) [not null, note: 'enum: local/google/kakao/naver/apple']
+  provider_uid varchar(255) [not null]
+  created_at timestamp [not null]
+
+  Indexes {
+    (provider, provider_uid) [unique, name: 'uq_social_provider_uid']
+  }
+}
+
+Table terms_agreements {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  terms_type varchar(40) [not null]
+  version varchar(20) [not null]
+  is_required boolean [not null]
+  agreed_at timestamp
+  revoked_at timestamp
+
+  Indexes {
+    (user_id, terms_type) [unique, name: 'uq_agreement_user_type']
+  }
+}
+
+Table refresh_tokens {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  jti varchar(32) [unique, not null, note: '토큰 원문 미저장, jti만 추적']
+  expires_at timestamp [not null]
+  revoked_at timestamp
+  created_at timestamp [not null]
+}
+
+Table email_verification_tokens {
+  id bigint [pk, increment]
+  email varchar(254) [not null, note: '가입 전 단계 - user_id 없음']
+  token_hash varchar(64) [unique, not null]
+  expires_at timestamp [not null]
+  verified_at timestamp
+  created_at timestamp [not null]
+
+  Indexes {
+    (email, verified_at) [name: 'ix_email_verification_email_verified']
+  }
+}
+
+Table phone_verification_tokens {
+  id bigint [pk, increment]
+  phone_hash varchar(64) [not null, note: 'REQ-F-ACC-01, 가입 전 단계 - user_id 없음']
+  code_hash varchar(64) [not null]
+  expires_at timestamp [not null]
+  verified_at timestamp
+  attempts int [not null, default: 0]
+  created_at timestamp [not null]
+
+  Indexes {
+    (phone_hash, verified_at) [name: 'ix_phone_verification_hash_verified']
+  }
+}
+
+Table sanctioned_identities {
+  id bigint [pk, increment]
+  phone_hash varchar(64) [unique, not null, note: 'REQ-F-ACC-11, 재가입 차단용 - 개인정보 원문은 이미 파기됨']
+  reason varchar(500) [not null]
+  created_at timestamp [not null]
+}
+
+Table oauth_nonces {
+  nonce_hash varchar(64) [pk, note: '소셜 ID token 재생공격 방지']
+  provider varchar(20) [not null]
+  created_at timestamp [not null, note: 'indexed']
+}
+
+Table children {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed - 보호자 직접소유(REQ-F-ACC-05)']
+  months_old int [not null]
+  gender varchar(1) [not null, note: 'enum: M/F']
+  temperament_memo varchar(500)
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table children_sensitive {
+  child_id bigint [pk, ref: > children.id, note: 'ondelete CASCADE - PII 분리 원칙(CODING_RULES.md §12)']
+  allergies varchar(512) [note: 'EncryptedStr, REQ-NF-SEC-01']
+  conditions varchar(512) [note: 'EncryptedStr']
+  medications varchar(512) [note: 'EncryptedStr']
+
+  note: 'REQ-F-ACC-06 — children과 물리적으로 분리된 민감정보 테이블, MAT 하드필터 입력값'
+}
+
+Table guardian_profiles {
+  user_id bigint [pk, ref: > users.id, note: 'ondelete CASCADE - User(auth_kit)는 직접 수정하지 않고 분리']
+  residence_h3 varchar(15) [not null, indexed, note: 'REQ-F-ACC-04/REQ-NF-SEC-05 - 좌표 아닌 H3 셀 문자열만 저장']
+  job_category varchar(20) [not null, note: 'enum: OFFICE_WORKER/SERVICE/SELF_EMPLOYED/HEALTHCARE/EDUCATION/IT/PUBLIC_SERVANT/HOMEMAKER/FREELANCER/OTHER']
+  work_type varchar(20) [not null, note: 'enum: FULL_TIME/SHIFT/FLEXIBLE/REMOTE/FREELANCE/UNEMPLOYED/OTHER']
+  household_composition varchar(20) [not null, note: 'enum: TWO_PARENT/SINGLE_PARENT/EXTENDED_FAMILY/OTHER']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  note: 'REQ-F-ACC-04 — enum 값은 요구사항정의서 미확정으로 T-ACC-2 가정치(docs/tasks/T-ACC-2.md), MAT 하드필터/소프트스코어 입력값'
+}
+
+Table guardian_tags {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  tag_code varchar(50) [not null, note: '고정 Enum 아님 - REQ-F-MAT-03 선택 6종 미확정이라 확장 가능한 코드 문자열']
+  created_at timestamp [not null]
+
+  Indexes {
+    (user_id, tag_code) [unique, name: 'uq_guardian_tag_user_code']
+  }
+
+  note: 'REQ-F-ACC-04 보유 태그. 알려진 코드는 app/core/utils/guardian_tags.py 참고'
+}
+
+Table parenting_values_profiles {
+  user_id bigint [pk, ref: > users.id, note: 'ondelete CASCADE - User(auth_kit)는 직접 수정하지 않고 분리']
+  warmth_score float [not null, note: '온기(반응성) 4문항 평균, 1~5']
+  control_score float [not null, note: '통제(요구성) 4문항 평균, 1~5']
+  type_label varchar(20) [not null, note: 'enum: AUTHORITATIVE/AUTHORITARIAN/PERMISSIVE/NEGLECTFUL - 중앙값(3.0) 기준 사분면 분류']
+  narrative varchar(2000) [note: 'REQ-F-ACC-10 자유 서술. LLM 보정은 스텁(docs/tasks/T-ACC-3.md 참고)']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  note: 'REQ-F-ACC-07 — 바움린드 8문항 진단 결과(현재 값). 문항 텍스트는 app/core/utils/baumrind_questions.py. MAT 가치관 유사도(REQ-F-MAT-04) 입력값'
+}
+
+Table parenting_values_history {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  warmth_score float [not null]
+  control_score float [not null]
+  type_label varchar(20) [not null, note: 'enum: AUTHORITATIVE/AUTHORITARIAN/PERMISSIVE/NEGLECTFUL']
+  source varchar(20) [not null, note: 'enum: QUESTIONNAIRE/NARRATIVE']
+  created_at timestamp [not null]
+
+  note: 'REQ-F-ACC-08/10 — 재진단·자유서술 제출마다 스냅샷 1행. 매칭 재계산 트리거 자체는 MAT 도메인 범위'
+}
+
+Table work_schedules {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  work_date date [not null, note: '(user_id, work_date) unique']
+  slot_bitmask bigint [not null, note: '30분 단위 48비트 마스크. 1=가용, 0=근무중(불가) — REQ-F-SCH-03']
+  shift_template varchar(20) [not null, note: 'enum: DAY/EVENING/NIGHT/OFF (2교대·격일제 등은 T-SCH-1 범위 밖)']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    (user_id, work_date) [unique, name: 'uq_work_schedule_user_date']
+  }
+
+  note: 'REQ-F-SCH-01/03/06 — NIGHT(23-07)는 당일 46-47, 익일 0-13 슬롯에 걸쳐 두 행으로 반영. MAT 상보 시간 계산(REQ-F-MAT-01) 입력값'
+}
+
+Table care_sessions {
+  id bigint [pk, increment]
+  requester_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed - 요청자']
+  provider_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed - 제공자']
+  child_id bigint [not null, ref: > children.id, note: 'ondelete CASCADE, indexed - 대상 아동(REQ-F-CAR-01), T-CAR-2에서 추가']
+  meeting_h3 varchar(15) [not null, note: '약속 장소 H3 셀(REQ-F-CAR-01/03), T-CAR-2에서 추가 - guardian_profiles.residence_h3와 동일 규칙']
+  care_date date [not null]
+  start_slot smallint [not null, note: '0~47, work_schedules와 동일 48슬롯 단위']
+  end_slot smallint [not null, note: '1~48, exclusive']
+  status varchar(20) [not null, note: 'enum: REQUESTED/CONFIRMED/REJECTED']
+  checkin_at timestamp [note: 'REQ-F-CAR-03, T-CAR-2']
+  checkin_distance_m float [note: '약속 장소 중심과의 거리(m) - 원본 GPS 좌표는 저장하지 않음(REQ-NF-SEC-05)']
+  checkin_out_of_range boolean [not null, default: false]
+  checkin_reason varchar(500) [note: '반경 밖 체크인 사유']
+  checkout_at timestamp [note: 'REQ-F-CAR-05']
+  actual_minutes int [note: '체크인·체크아웃 차이(분) - 포인트 정산 근거, 실제 정산은 T-PNT-1 범위']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  note: 'REQ-F-CAR-01/02/03/05 — 생성 시 [start_slot,end_slot) 전 구간이 제공자 가용+요청자 불가(상보) 조건을 만족해야 한다. 수락 시 L1 등급 전이(REQ-F-MAT-07)는 T-TRS-2 범위'
+}
+
+Table care_logs {
+  session_id bigint [pk, ref: > care_sessions.id, note: 'ondelete CASCADE - 세션당 1건(upsert)']
+  meal varchar(500)
+  sleep varchar(500)
+  mood varchar(50)
+  note varchar(1000) [note: '특이사항']
+  allergy_note varchar(500) [note: '대상 아동에 children_sensitive.allergies가 있으면 필수(서비스 계층 검증)']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  note: 'REQ-F-CAR-06 — 알레르기 등록 아동은 allergy_note 미입력 시 저장이 거부된다'
+}
+
+Table care_evaluations {
+  id bigint [pk, increment]
+  session_id bigint [not null, ref: > care_sessions.id, note: 'ondelete CASCADE, indexed']
+  evaluator_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  evaluatee_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  rating smallint [not null, note: '1~5']
+  created_at timestamp [not null]
+
+  Indexes {
+    (session_id, evaluator_id) [unique, name: 'uq_care_evaluation_session_evaluator']
+  }
+
+  note: 'REQ-F-TRS-05 — 세션의 checkout_at이 있어야만(돌봄 종료) 제출 가능, 세션당 평가자 1회'
+}
+
+Table care_evaluation_tags {
+  id bigint [pk, increment]
+  evaluation_id bigint [not null, ref: > care_evaluations.id, note: 'ondelete CASCADE, indexed']
+  tag_code varchar(50) [not null, note: '시간 준수/소통 원활/안전 배려 등, guardian_tags와 동일 패턴']
+
+  note: 'REQ-F-TRS-05/07 — 평가 태그. 상위 3개가 매칭 후보 상세(REQ-F-TRS-07)에 노출된다'
+}
+
+Table trust_weights {
+  id int [pk, note: '싱글턴 - 항상 1행(id=1), 최초 조회 시 지연 생성']
+  w1 float [not null, note: '별점 가중치']
+  w2 float [not null, note: '이행 확인 응답률 가중치(REQ-F-TRS-02 미구현 - 스텁 1.0)']
+  w3 float [not null, note: '(1-노쇼율) 가중치(REQ-F-CAR-07 미구현 - 스텁 노쇼율 0.0)']
+  w4 float [not null, note: '돌봄 일지 작성률 가중치']
+  updated_at timestamp [not null]
+
+  note: 'REQ-F-TRS-08 — 기본값 w1=0.4/w2=0.2/w3=0.2/w4=0.2(합 1.0), 변경은 운영자만+합 1.0 검증'
+}
+
+Table trust_weight_history {
+  id bigint [pk, increment]
+  changed_by_user_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  previous_w1 float [not null]
+  previous_w2 float [not null]
+  previous_w3 float [not null]
+  previous_w4 float [not null]
+  changed_at timestamp [not null]
+
+  note: 'REQ-F-TRS-08 — 가중치 변경 시 변경 전 값을 스냅샷으로 남긴다'
+}
+
+Table trust_relationships {
+  id bigint [pk, increment]
+  user_a_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed, user_a_id < user_b_id로 정규화']
+  user_b_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  level varchar(2) [not null, note: 'L1/L2/L3, 기본 L1']
+  joint_session_count smallint [not null, note: '완료 확인된 공동육아 횟수']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    (user_a_id, user_b_id) [unique, name: 'uq_trust_relationship_pair']
+  }
+
+  note: 'REQ-F-TRS-01 — care_sessions.accept() 시 관계가 없으면 L1로 생성(REQ-F-MAT-07)'
+}
+
+Table trust_level_history {
+  id bigint [pk, increment]
+  relationship_id bigint [not null, ref: > trust_relationships.id, note: 'ondelete CASCADE, indexed']
+  previous_level varchar(2) [not null]
+  new_level varchar(2) [not null]
+  changed_by_user_id bigint [ref: > users.id, note: 'ondelete SET NULL, null=시스템 자동 승급']
+  reason varchar(200)
+  changed_at timestamp [not null]
+
+  note: 'REQ-F-TRS-01 — 자동 승급(changed_by_user_id null) 및 운영자 수동 강등 이력'
+}
+
+Table joint_care_sessions {
+  id bigint [pk, increment]
+  initiator_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  partner_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  place varchar(100) [not null, note: '키즈카페·공원 등 공개 장소']
+  scheduled_date date [not null]
+  confirmed_by_initiator boolean [not null]
+  confirmed_by_partner boolean [not null]
+  status varchar(10) [not null, note: 'SCHEDULED/COMPLETED']
+  created_at timestamp [not null]
+
+  note: 'REQ-F-TRS-02 — GPS 체크인 없이 장소 선택+양측 완료 확인만으로 1회 집계, care_sessions와 별개'
+}
+
+Table trust_settings {
+  user_id bigint [pk, ref: > users.id, note: 'ondelete CASCADE']
+  required_joint_count smallint [not null, note: '기본 3, 하한 1(REQ-F-TRS-03)']
+  updated_at timestamp [not null]
+
+  note: 'REQ-F-TRS-03 — 관계의 필요 횟수는 양측 설정값 중 큰 값을 사용'
+}
+
+Table point_accounts {
+  user_id bigint [pk, ref: > users.id, note: 'ondelete CASCADE']
+  balance int [not null, note: '최초 조회 시 시드 포인트(12)로 지연 생성']
+  updated_at timestamp [not null]
+
+  note: 'REQ-F-PNT-04 — auth_kit 회원가입 훅이 아니라 최초 조회 시 지연 생성(trust_weights와 동일 패턴)'
+}
+
+Table point_transactions {
+  id bigint [pk, increment]
+  reason varchar(100) [not null]
+  reference_type varchar(50) [note: '예: care_session']
+  reference_id int
+  created_at timestamp [not null]
+
+  note: 'REQ-F-PNT-01 — 거래 1건, 항상 정확히 2개의 point_entries(+amount/-amount)를 가진다'
+}
+
+Table point_entries {
+  id bigint [pk, increment]
+  transaction_id bigint [not null, ref: > point_transactions.id, note: 'ondelete CASCADE, indexed']
+  user_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  counterparty_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE']
+  amount int [not null, note: '+적립/-차감, 슬롯(30분) 단위']
+
+  note: 'REQ-F-PNT-02 — 거래별 두 entry의 amount 합은 항상 0(구조적 보장)'
+}

@@ -5,7 +5,7 @@ from alembic import context
 from sqlalchemy import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
-import app.models  # noqa: F401  # User/Profile을 Base.metadata에 등록하기 위한 임포트
+import app.models  # noqa: F401  # User/Child 등을 Base.metadata에 등록하기 위한 임포트
 from app.core import config as app_config
 from app.models.base import Base
 

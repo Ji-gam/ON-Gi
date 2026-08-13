@@ -49,9 +49,11 @@ app = [
     "asyncmy>=0.2.11",
     "bcrypt<=4.0.1",
     "celery>=5.4.0",
+    "email-validator>=2.2.0",  # pydantic[email] - auth_kit 가입 스키마의 EmailStr 검증
     "fastapi[standard]>=0.128.0",
     # FCM(Firebase Cloud Messaging) - 웹/네이티브 공통 발송 채널(app/services/push_service.py).
     "firebase-admin>=7.5.0",
+    "h3>=4.4.0",  # REQ-F-ACC-04 거주지 H3 인덱스 검증
     "httpx>=0.28.1",
     "orjson>=3.11.5",
     "passlib[bcrypt]>=1.7.4",
@@ -64,6 +66,7 @@ app = [
     "uvicorn>=0.40.0",
 ]
 dev = [
+    "aiosqlite>=0.21.0",  # auth_kit/security_kit 자체 테스트용 인메모리 SQLite
     "coverage>=7.13.2",
     "mypy>=1.19.1",
     "pytest-asyncio>=1.3.0",
@@ -141,4 +144,9 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 # firebase-admin은 py.typed 마커가 없어 mypy가 스텁을 못 찾는다(celery와 동일한 이유).
 module = ["firebase_admin", "firebase_admin.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# h3(h3-py)도 py.typed 마커/스텁을 제공하지 않는다(celery와 동일한 이유).
+module = ["h3"]
 ignore_missing_imports = true
