@@ -101,7 +101,7 @@ export default function GuardianProfilePage() {
       );
       setSavedMessage("저장되었습니다.");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "저장에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "저장에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
     }

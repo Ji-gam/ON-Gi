@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
 
-import { ApiError } from "@/api/client";
 import * as workScheduleApi from "@/api/workSchedule";
 import type { ShiftTemplate, WorkScheduleResponse } from "@/api/workScheduleTypes";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,7 +25,7 @@ export default function WorkSchedulePage() {
       .getSchedule(today(), undefined, accessToken)
       .then(setSchedule)
       .catch((err) =>
-        setError(err instanceof ApiError ? err.message : "근무표를 불러오지 못했습니다."),
+        setError(err instanceof Error ? err.message : "근무표를 불러오지 못했습니다."),
       );
   }
 
@@ -44,7 +43,7 @@ export default function WorkSchedulePage() {
       );
       loadSchedule();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "등록에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "등록에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
     }
