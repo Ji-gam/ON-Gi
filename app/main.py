@@ -1,9 +1,15 @@
-from fastapi import FastAPI
-from fastapi.responses import ORJSONResponse
+from dotenv import load_dotenv
 
-from app.apis.v1 import v1_routers
-from app.core.db.databases import get_db
-from auth_kit.router import get_session
+# auth_kit/security_kit은 os.getenv로 직접 읽는다(pydantic Settings가 아님) - .env가
+# 프로세스 환경변수로 실제로 올라가 있어야 인식되므로, 다른 모듈을 import하기 전에 로드한다.
+load_dotenv()
+
+from fastapi import FastAPI  # noqa: E402
+from fastapi.responses import ORJSONResponse  # noqa: E402
+
+from app.apis.v1 import v1_routers  # noqa: E402
+from app.core.db.databases import get_db  # noqa: E402
+from auth_kit.router import get_session  # noqa: E402
 
 app = FastAPI(
     title="ON-Gi API",
