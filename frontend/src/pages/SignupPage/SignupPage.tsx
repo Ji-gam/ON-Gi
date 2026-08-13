@@ -79,123 +79,180 @@ export default function SignupPage() {
   const canSubmit = requiredAgreed && !!gender && !isSubmitting;
 
   return (
-    <main>
-      <h1>ON-Gi 회원가입</h1>
-      <form onSubmit={handleSignup}>
-        <fieldset>
-          <legend>휴대폰 본인확인</legend>
-          <p>알림(SMS) 인증 연동 전까지는 입력만 받습니다.</p>
-          <div>
-            <label htmlFor="phone">휴대폰 번호</label>
-            <input
-              id="phone"
-              type="tel"
-              placeholder="010-1234-5678"
-              required
-              value={phoneNumber}
-              onChange={(event) => setPhoneNumber(event.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="code">인증번호</label>
-            <input id="code" inputMode="numeric" pattern="\d{6}" disabled />
-          </div>
-        </fieldset>
+    <main className="flex min-h-screen justify-center bg-background px-6 py-10">
+      <div className="flex w-full max-w-[480px] flex-col gap-6">
+        <h1 className="text-center text-base font-medium text-foreground">회원가입 · 약관 동의</h1>
 
-        <fieldset>
-          <legend>약관 동의</legend>
-          {terms.map((term) => (
-            <div key={term.terms_type}>
-              <label>
+        <form onSubmit={handleSignup} className="flex flex-col gap-6">
+          <section className="flex flex-col gap-2.5 rounded-xl border border-border bg-secondary p-4">
+            <h2 className="text-xs font-medium text-muted-foreground">휴대폰 본인확인</h2>
+            <p className="text-[11px] text-muted-foreground">
+              알림(SMS) 인증 연동 전까지는 입력만 받습니다.
+            </p>
+            <div>
+              <label htmlFor="phone" className="sr-only">
+                휴대폰 번호
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                placeholder="010-1234-5678"
+                required
+                value={phoneNumber}
+                onChange={(event) => setPhoneNumber(event.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            <div>
+              <label htmlFor="code" className="sr-only">
+                인증번호
+              </label>
+              <input
+                id="code"
+                inputMode="numeric"
+                pattern="\d{6}"
+                disabled
+                placeholder="인증번호 (연동 전)"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-muted-foreground placeholder:text-muted-foreground disabled:opacity-60"
+              />
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-2.5 rounded-xl border border-border bg-secondary p-4">
+            <h2 className="text-xs font-medium text-muted-foreground">약관 동의</h2>
+            {terms.map((term) => (
+              <label
+                key={term.terms_type}
+                className="flex items-center gap-2 text-xs text-foreground"
+              >
                 <input
                   type="checkbox"
                   checked={agreedTypes.has(term.terms_type)}
                   onChange={() => toggleAgreement(term)}
+                  className="h-4 w-4 accent-primary"
                 />
                 {term.is_required ? "[필수] " : "[선택] "}
                 {term.title}
               </label>
+            ))}
+          </section>
+
+          <section className="flex flex-col gap-2.5 rounded-xl border border-border bg-secondary p-4">
+            <h2 className="text-xs font-medium text-muted-foreground">가입정보</h2>
+            <div>
+              <label htmlFor="email" className="sr-only">
+                이메일
+              </label>
+              <input
+                id="email"
+                type="email"
+                placeholder="이메일"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
+              />
             </div>
-          ))}
-        </fieldset>
+            <div>
+              <label htmlFor="password" className="sr-only">
+                비밀번호
+              </label>
+              <input
+                id="password"
+                type="password"
+                placeholder="비밀번호"
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                대문자·소문자·숫자·기호를 포함해 입력하세요.
+              </p>
+            </div>
+            <div>
+              <label htmlFor="name" className="sr-only">
+                이름
+              </label>
+              <input
+                id="name"
+                placeholder="이름"
+                required
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            <div>
+              <label htmlFor="nickname" className="sr-only">
+                닉네임
+              </label>
+              <input
+                id="nickname"
+                placeholder="닉네임"
+                required
+                value={nickname}
+                onChange={(event) => setNickname(event.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            <div>
+              <label htmlFor="birthDate" className="mb-1 block text-xs text-muted-foreground">
+                생년월일
+              </label>
+              <input
+                id="birthDate"
+                type="date"
+                required
+                value={birthDate}
+                onChange={(event) => setBirthDate(event.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground"
+              />
+            </div>
+            <div>
+              <label htmlFor="gender" className="mb-1 block text-xs text-muted-foreground">
+                성별
+              </label>
+              <select
+                id="gender"
+                required
+                value={gender}
+                onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+                  setGender(event.target.value as Gender)
+                }
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground"
+              >
+                <option value="" disabled>
+                  선택
+                </option>
+                <option value="M">남성</option>
+                <option value="F">여성</option>
+              </select>
+            </div>
+          </section>
 
-        <fieldset>
-          <legend>가입정보</legend>
-          <div>
-            <label htmlFor="email">이메일</label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="password">비밀번호</label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="name">이름</label>
-            <input
-              id="name"
-              required
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="nickname">닉네임</label>
-            <input
-              id="nickname"
-              required
-              value={nickname}
-              onChange={(event) => setNickname(event.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="birthDate">생년월일</label>
-            <input
-              id="birthDate"
-              type="date"
-              required
-              value={birthDate}
-              onChange={(event) => setBirthDate(event.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="gender">성별</label>
-            <select
-              id="gender"
-              required
-              value={gender}
-              onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                setGender(event.target.value as Gender)
-              }
-            >
-              <option value="" disabled>
-                선택
-              </option>
-              <option value="M">남성</option>
-              <option value="F">여성</option>
-            </select>
-          </div>
-        </fieldset>
+          {error && (
+            <p className="rounded-lg bg-destructive/10 px-3 py-2.5 text-xs text-destructive">
+              {error}
+            </p>
+          )}
 
-        {error && <p>{error}</p>}
-        <button type="submit" disabled={!canSubmit}>
-          {isSubmitting ? "가입 중..." : "가입하기"}
-        </button>
-      </form>
-      <p>
-        이미 계정이 있으신가요? <Link to="/login">로그인</Link>
-      </p>
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="rounded-lg bg-primary px-3 py-3 text-sm font-medium text-primary-foreground disabled:opacity-60"
+          >
+            {isSubmitting ? "가입 중..." : "가입하기"}
+          </button>
+        </form>
+
+        <p className="text-center text-xs text-foreground">
+          이미 계정이 있으신가요?{" "}
+          <Link to="/login" className="font-medium">
+            로그인
+          </Link>
+        </p>
+      </div>
     </main>
   );
 }
