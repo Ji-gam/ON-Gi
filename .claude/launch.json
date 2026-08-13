@@ -21,10 +21,10 @@
         "app.main:app",
         "--reload",
         "--port",
-        "8010"
+        "8000"
       ],
-      "port": 8010,
-      "autoPort": true
+      "port": 8000,
+      "autoPort": false
     }
   ]
 }
