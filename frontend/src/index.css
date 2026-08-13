@@ -3,22 +3,23 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 앱 공통 연핑크 팔레트(theme/pinkTheme.ts)와 1:1 대응하는 HSL 값 — 두 파일을 항상 같이 수정한다.
-   pageBg #FFF5F8 / text #5A4A4E / primary #FF6F91 / primarySoft #FFE3EC / textMuted #B98A9A
-   / danger #E85D75 / border #FFD6E4 */
+/* 앱 공통 버터옐로우+네이비 팔레트와 1:1 대응하는 HSL 값 — 화면 UX 시안(버터옐로우/네이비 기본,
+   레드는 알림·미완료·위험 배지에만) 기준. 팔레트 바꿀 때 이 값들만 수정하면 전체 화면에 반영된다.
+   pageBg #FFF9DB / text(navy) #1D2C4D / primary(navy) #1D2C4D / primary-foreground #FFF9DB
+   / secondary(card) #FFFDF6 / muted-foreground #8A8570 / danger #E24B4A / border #EFE1B8 */
 :root {
-  --background: 342 100% 98%;
-  --foreground: 345 10% 32%;
-  --primary: 346 100% 72%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 341 100% 94%;
-  --secondary-foreground: 345 10% 32%;
-  --muted: 341 100% 94%;
-  --muted-foreground: 340 25% 63%;
-  --destructive: 350 75% 64%;
+  --background: 50 100% 93%;
+  --foreground: 221 45% 21%;
+  --primary: 221 45% 21%;
+  --primary-foreground: 50 100% 93%;
+  --secondary: 47 100% 98%;
+  --secondary-foreground: 221 45% 21%;
+  --muted: 47 100% 98%;
+  --muted-foreground: 48 10% 49%;
+  --destructive: 0 72% 59%;
   --destructive-foreground: 0 0% 100%;
-  --border: 340 100% 92%;
-  --radius: 1rem;
+  --border: 45 63% 83%;
+  --radius: 0.75rem;
 }
 
 /* 파일 업로드(복약관리 분석)의 '파일 선택' 버튼 — 브라우저 기본 회색 대신 흰 배경으로 통일 */
