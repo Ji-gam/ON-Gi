@@ -3,6 +3,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/hooks/useAuth";
 
+// 카카오/네이버/구글 버튼은 화면설계서 SCR-01 기준 UI만 먼저 반영 — 백엔드에 소셜 로그인
+// 엔드포인트(api/auth.ts)가 없어 클릭해도 동작하지 않는다. 연동 전까지 disabled로 둔다.
+const SOCIAL_PROVIDERS = [
+  { name: "카카오로 시작하기", badgeBg: "bg-[#FEE500]", badgeText: "K" },
+  { name: "네이버로 시작하기", badgeBg: "bg-[#03C75A]", badgeText: "N" },
+  { name: "구글로 시작하기", badgeBg: "bg-white border border-border", badgeText: "G" },
+];
+
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -10,6 +18,7 @@ export default function LoginPage() {
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,39 +37,106 @@ export default function LoginPage() {
   }
 
   return (
-    <main>
-      <h1>ON-Gi 로그인</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email">이메일</label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
+    <main className="flex min-h-screen justify-center bg-background px-6 py-14">
+      <div className="flex w-full max-w-[480px] flex-col items-center">
+        <div className="flex h-[92px] w-[92px] flex-col items-center justify-center gap-[9px] rounded-lg bg-primary p-3">
+          <span className="text-xl font-medium leading-none text-primary-foreground">품</span>
+          <span className="h-px w-full bg-primary-foreground/75" />
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-medium leading-none text-primary-foreground">앗</span>
+            <span className="h-[18px] w-px bg-primary-foreground/75" />
+            <span className="text-lg font-medium leading-none text-primary-foreground">이</span>
+          </div>
         </div>
-        <div>
-          <label htmlFor="password">비밀번호</label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
+
+        <h1 className="mt-3.5 text-xs text-muted-foreground">사람들 사이 에너지 스위치를 켜다</h1>
+
+        <form onSubmit={handleSubmit} className="mt-7 flex w-full flex-col gap-2.5">
+          <div>
+            <label htmlFor="email" className="sr-only">
+              이메일
+            </label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="이메일"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="w-full rounded-lg border border-border bg-secondary px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+          <div className="flex items-center rounded-lg border border-border bg-secondary px-3 py-2.5">
+            <label htmlFor="password" className="sr-only">
+              비밀번호
+            </label>
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder="비밀번호"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="shrink-0 text-xs text-muted-foreground"
+            >
+              {showPassword ? "숨기기" : "보기"}
+            </button>
+          </div>
+
+          {error && (
+            <p className="rounded-lg bg-destructive/10 px-3 py-2.5 text-xs text-destructive">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="mt-1.5 rounded-lg bg-primary px-3 py-3 text-sm font-medium text-primary-foreground disabled:opacity-60"
+          >
+            {isSubmitting ? "로그인 중..." : "로그인"}
+          </button>
+        </form>
+
+        <div className="mt-4 flex w-full items-center gap-2">
+          <span className="h-px flex-1 bg-border" />
+          <span className="text-[11px] text-muted-foreground">또는</span>
+          <span className="h-px flex-1 bg-border" />
         </div>
-        {error && <p>{error}</p>}
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "로그인 중..." : "로그인"}
-        </button>
-      </form>
-      <p>
-        계정이 없으신가요? <Link to="/signup">회원가입</Link>
-      </p>
+
+        <div className="mt-3.5 flex w-full flex-col gap-2">
+          {SOCIAL_PROVIDERS.map((provider) => (
+            <button
+              key={provider.name}
+              type="button"
+              disabled
+              className="flex items-center justify-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2.5 text-sm font-medium text-foreground opacity-60"
+            >
+              <span
+                className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-medium text-foreground ${provider.badgeBg}`}
+              >
+                {provider.badgeText}
+              </span>
+              {provider.name}
+              <span className="ml-1 text-[10px] text-muted-foreground">(준비 중)</span>
+            </button>
+          ))}
+        </div>
+
+        <p className="mt-5 text-xs text-foreground">
+          계정이 없으신가요?{" "}
+          <Link to="/signup" className="font-medium">
+            회원가입
+          </Link>
+        </p>
+      </div>
     </main>
   );
 }
