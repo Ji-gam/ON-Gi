@@ -12,10 +12,6 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 휴대폰 번호 — 알림(SMS) 발송 연동 전까지는 입력만 받는다(실제 인증 API 호출 없음).
-  // 인증번호는 발송 자체가 없어 입력할 값이 없으므로 필드를 비활성화해둔다.
-  const [phoneNumber, setPhoneNumber] = useState("");
-
   // 약관 동의
   const [terms, setTerms] = useState<TermItem[]>([]);
   const [agreedTypes, setAgreedTypes] = useState<Set<string>>(new Set());
@@ -27,6 +23,15 @@ export default function SignupPage() {
   const [nickname, setNickname] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [gender, setGender] = useState<Gender | "">("");
+
+  // 휴대폰 본인확인 — 인증번호를 받아 직접 검증까지 완료해야 phoneVerified가 true가 된다.
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneCode, setPhoneCode] = useState("");
+  const [isSendingPhoneCode, setIsSendingPhoneCode] = useState(false);
+  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
+  const [phoneCodeSent, setPhoneCodeSent] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [phoneMessage, setPhoneMessage] = useState<string | null>(null);
 
   useEffect(() => {
     authApi
@@ -47,6 +52,45 @@ export default function SignupPage() {
   const requiredAgreed = terms
     .filter((t) => t.is_required)
     .every((t) => agreedTypes.has(t.terms_type));
+
+  function handlePhoneNumberChange(value: string) {
+    setPhoneNumber(value);
+    // 번호를 바꾸면 이전 인증 상태는 더 이상 유효하지 않다.
+    if (phoneCodeSent || phoneVerified) {
+      setPhoneCodeSent(false);
+      setPhoneVerified(false);
+      setPhoneCode("");
+      setPhoneMessage(null);
+    }
+  }
+
+  async function handleSendPhoneCode() {
+    setPhoneMessage(null);
+    setIsSendingPhoneCode(true);
+    try {
+      const res = await authApi.requestPhoneVerification(phoneNumber);
+      setPhoneMessage(res.message);
+      setPhoneCodeSent(true);
+    } catch (err) {
+      setPhoneMessage(err instanceof Error ? err.message : "인증번호 발송에 실패했습니다.");
+    } finally {
+      setIsSendingPhoneCode(false);
+    }
+  }
+
+  async function handleVerifyPhoneCode() {
+    setPhoneMessage(null);
+    setIsVerifyingPhone(true);
+    try {
+      await authApi.verifyPhone({ phone_number: phoneNumber, code: phoneCode });
+      setPhoneVerified(true);
+      setPhoneMessage("휴대폰 본인확인이 완료되었습니다.");
+    } catch (err) {
+      setPhoneMessage(err instanceof Error ? err.message : "인증번호가 올바르지 않습니다.");
+    } finally {
+      setIsVerifyingPhone(false);
+    }
+  }
 
   async function handleSignup(event: FormEvent) {
     event.preventDefault();
@@ -76,7 +120,7 @@ export default function SignupPage() {
     }
   }
 
-  const canSubmit = requiredAgreed && !!gender && !isSubmitting;
+  const canSubmit = requiredAgreed && !!gender && phoneVerified && !isSubmitting;
 
   return (
     <main className="flex min-h-screen justify-center bg-background px-6 py-10">
@@ -86,36 +130,57 @@ export default function SignupPage() {
         <form onSubmit={handleSignup} className="flex flex-col gap-6">
           <section className="flex flex-col gap-2.5 rounded-xl border border-border bg-secondary p-4">
             <h2 className="text-xs font-medium text-muted-foreground">휴대폰 본인확인</h2>
-            <p className="text-[11px] text-muted-foreground">
-              알림(SMS) 인증 연동 전까지는 입력만 받습니다.
-            </p>
-            <div>
-              <label htmlFor="phone" className="sr-only">
-                휴대폰 번호
-              </label>
+            <div className="flex gap-2">
               <input
                 id="phone"
                 type="tel"
                 placeholder="010-1234-5678"
                 required
+                disabled={phoneVerified}
                 value={phoneNumber}
-                onChange={(event) => setPhoneNumber(event.target.value)}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
+                onChange={(event) => handlePhoneNumberChange(event.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground disabled:opacity-60"
               />
+              <button
+                type="button"
+                onClick={handleSendPhoneCode}
+                disabled={!phoneNumber || isSendingPhoneCode || phoneVerified}
+                className="shrink-0 rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-medium text-foreground disabled:opacity-60"
+              >
+                {isSendingPhoneCode ? "발송 중..." : phoneCodeSent ? "다시 받기" : "인증번호 받기"}
+              </button>
             </div>
-            <div>
-              <label htmlFor="code" className="sr-only">
-                인증번호
-              </label>
-              <input
-                id="code"
-                inputMode="numeric"
-                pattern="\d{6}"
-                disabled
-                placeholder="인증번호 (연동 전)"
-                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-muted-foreground placeholder:text-muted-foreground disabled:opacity-60"
-              />
-            </div>
+            {phoneCodeSent && !phoneVerified && (
+              <div className="flex gap-2">
+                <input
+                  id="code"
+                  inputMode="numeric"
+                  pattern="\d{6}"
+                  placeholder="인증번호 6자리"
+                  value={phoneCode}
+                  onChange={(event) => setPhoneCode(event.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
+                />
+                <button
+                  type="button"
+                  onClick={handleVerifyPhoneCode}
+                  disabled={phoneCode.length !== 6 || isVerifyingPhone}
+                  className="shrink-0 rounded-lg bg-primary px-3 py-2.5 text-xs font-medium text-primary-foreground disabled:opacity-60"
+                >
+                  {isVerifyingPhone ? "확인 중..." : "확인"}
+                </button>
+              </div>
+            )}
+            {phoneMessage && (
+              <p
+                className={
+                  phoneVerified ? "text-[11px] text-primary" : "text-[11px] text-muted-foreground"
+                }
+              >
+                {phoneVerified ? "✓ " : ""}
+                {phoneMessage}
+              </p>
+            )}
           </section>
 
           <section className="flex flex-col gap-2.5 rounded-xl border border-border bg-secondary p-4">
@@ -167,7 +232,7 @@ export default function SignupPage() {
                 className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
               />
               <p className="mt-1 text-[11px] text-muted-foreground">
-                대문자·소문자·숫자·기호를 포함해 입력하세요.
+                대문자·소문자·숫자·기호를 포함해 8자 이상 입력하세요.
               </p>
             </div>
             <div>
@@ -244,6 +309,11 @@ export default function SignupPage() {
           >
             {isSubmitting ? "가입 중..." : "가입하기"}
           </button>
+          {!phoneVerified && (
+            <p className="-mt-3 text-center text-[11px] text-muted-foreground">
+              휴대폰 본인확인을 완료해야 가입할 수 있어요.
+            </p>
+          )}
         </form>
 
         <p className="text-center text-xs text-foreground">
