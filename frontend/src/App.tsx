@@ -3,7 +3,6 @@ import { createBrowserRouter } from "react-router-dom";
 import Layout from "./components/common/Layout";
 import RequireAuth from "./components/common/RequireAuth";
 import ChildrenPage from "./pages/ChildrenPage/ChildrenPage";
-import EmailVerifyPage from "./pages/EmailVerifyPage/EmailVerifyPage";
 import GuardianProfilePage from "./pages/GuardianProfilePage/GuardianProfilePage";
 import HomePage from "./pages/HomePage/HomePage";
 import LoginPage from "./pages/LoginPage/LoginPage";
@@ -17,7 +16,6 @@ import WorkSchedulePage from "./pages/WorkSchedulePage/WorkSchedulePage";
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/signup", element: <SignupPage /> },
-  { path: "/auth/email/verify", element: <EmailVerifyPage /> },
   {
     element: <Layout />,
     children: [

@@ -24,12 +24,6 @@ export default function SignupPage() {
   const [birthDate, setBirthDate] = useState("");
   const [gender, setGender] = useState<Gender | "">("");
 
-  // 이메일 인증 — /auth/signup은 사전에 완료된 인증만 인정한다. 발송 상태만 로컬로
-  // 추적하고, 실제 완료 여부는 메일 링크 클릭(EmailVerifyPage) 이후 서버가 판단한다.
-  const [isSendingEmailVerification, setIsSendingEmailVerification] = useState(false);
-  const [emailVerificationMessage, setEmailVerificationMessage] = useState<string | null>(null);
-  const [emailVerificationSentTo, setEmailVerificationSentTo] = useState<string | null>(null);
-
   // 휴대폰 본인확인 — 인증번호를 받아 직접 검증까지 완료해야 phoneVerified가 true가 된다.
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneCode, setPhoneCode] = useState("");
@@ -58,22 +52,6 @@ export default function SignupPage() {
   const requiredAgreed = terms
     .filter((t) => t.is_required)
     .every((t) => agreedTypes.has(t.terms_type));
-
-  async function handleSendEmailVerification() {
-    setEmailVerificationMessage(null);
-    setIsSendingEmailVerification(true);
-    try {
-      const res = await authApi.requestEmailVerification(email);
-      setEmailVerificationMessage(res.message);
-      setEmailVerificationSentTo(email);
-    } catch (err) {
-      setEmailVerificationMessage(
-        err instanceof Error ? err.message : "인증 메일 발송에 실패했습니다.",
-      );
-    } finally {
-      setIsSendingEmailVerification(false);
-    }
-  }
 
   function handlePhoneNumberChange(value: string) {
     setPhoneNumber(value);
@@ -227,38 +205,18 @@ export default function SignupPage() {
           <section className="flex flex-col gap-2.5 rounded-xl border border-border bg-secondary p-4">
             <h2 className="text-xs font-medium text-muted-foreground">가입정보</h2>
             <div>
-              <div className="flex gap-2">
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="이메일"
-                  required
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
-                />
-                <button
-                  type="button"
-                  onClick={handleSendEmailVerification}
-                  disabled={!email || isSendingEmailVerification}
-                  className="shrink-0 rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-medium text-foreground disabled:opacity-60"
-                >
-                  {isSendingEmailVerification
-                    ? "발송 중..."
-                    : emailVerificationSentTo === email
-                      ? "다시 보내기"
-                      : "인증 메일 보내기"}
-                </button>
-              </div>
-              {emailVerificationMessage && (
-                <p className="mt-1 text-[11px] text-muted-foreground">{emailVerificationMessage}</p>
-              )}
-              {emailVerificationSentTo === email && (
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  메일함에서 링크를 눌러 인증을 완료한 뒤, 이 화면으로 돌아와 나머지 정보를
-                  입력해주세요.
-                </p>
-              )}
+              <label htmlFor="email" className="sr-only">
+                이메일
+              </label>
+              <input
+                id="email"
+                type="email"
+                placeholder="이메일"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
+              />
             </div>
             <div>
               <label htmlFor="password" className="sr-only">
@@ -353,8 +311,7 @@ export default function SignupPage() {
           </button>
           {!phoneVerified && (
             <p className="-mt-3 text-center text-[11px] text-muted-foreground">
-              휴대폰 본인확인을 완료해야 가입할 수 있어요. (이메일도 인증 메일의 링크를 눌러
-              완료해주세요.)
+              휴대폰 본인확인을 완료해야 가입할 수 있어요.
             </p>
           )}
         </form>

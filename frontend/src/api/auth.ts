@@ -1,8 +1,6 @@
 import { apiRequest } from "./client";
 import type {
   AuthResponse,
-  EmailVerificationResponse,
-  EmailVerifyResult,
   LoginRequest,
   PhoneVerificationConfirmRequest,
   PhoneVerificationResponse,
@@ -16,17 +14,6 @@ export function login(request: LoginRequest): Promise<AuthResponse> {
 
 export function getTerms(): Promise<TermsListResponse> {
   return apiRequest<TermsListResponse>("/auth/terms");
-}
-
-export function requestEmailVerification(email: string): Promise<EmailVerificationResponse> {
-  return apiRequest<EmailVerificationResponse>("/auth/email/verify-request", {
-    method: "POST",
-    body: { email },
-  });
-}
-
-export function verifyEmail(token: string): Promise<EmailVerifyResult> {
-  return apiRequest<EmailVerifyResult>(`/auth/email/verify?token=${encodeURIComponent(token)}`);
 }
 
 export function requestPhoneVerification(phoneNumber: string): Promise<PhoneVerificationResponse> {
