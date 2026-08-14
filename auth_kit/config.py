@@ -58,7 +58,7 @@ MIN_SIGNUP_AGE = 14
 
 def require_email_verification() -> bool:
     """이메일 인증(메일 링크 클릭)을 가입 전제조건으로 강제할지."""
-    return os.getenv("REQUIRE_EMAIL_VERIFICATION", "true").lower() == "true"
+    return os.getenv("REQUIRE_EMAIL_VERIFICATION", "false").lower() == "true"
 
 
 EMAIL_VERIFICATION_TTL = timedelta(minutes=30)

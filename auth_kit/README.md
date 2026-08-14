@@ -30,7 +30,7 @@ TTL 정책만 얹는다. 보안 체크리스트도 `security_kit/README.md`에 �
 JWT_SECRET=<python -c "import secrets;print(secrets.token_urlsafe(48))">   # 32바이트 미만이면 실행 시 에러
 PII_ENCRYPTION_KEY=<python -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())">
 PII_HASH_KEY=<python -c "import secrets;print(secrets.token_urlsafe(32))">
-REQUIRE_EMAIL_VERIFICATION=true
+REQUIRE_EMAIL_VERIFICATION=false
 REQUIRE_PHONE_VERIFICATION=true
 COOKIE_SECURE=true          # 로컬 http 개발에서는 false
 COOKIE_DOMAIN=
@@ -156,7 +156,7 @@ POST /auth/social/complete {signup_token, nickname, birth_date, gender, agreemen
 |---|---|---|
 | `PASSWORD_MIN_LENGTH` / `PASSWORD_REQUIRE_UPPERCASE` | 8 / True | |
 | `MIN_SIGNUP_AGE` | 14 | 가입자(보호자) 본인의 나이 하한. 미만은 가입 차단 |
-| `REQUIRE_EMAIL_VERIFICATION` | true | false면 인증 없이 바로 가입 |
+| `REQUIRE_EMAIL_VERIFICATION` | false | true면 이메일 인증 완료 전 가입 차단 |
 | `REQUIRE_PHONE_VERIFICATION` | true | false면 본인확인 없이 바로 가입 (REQ-F-ACC-01) |
 | `PHONE_VERIFICATION_TTL` | 5분 | OTP 유효시간 |
 | `MAX_LOGIN_ATTEMPTS` / `LOCKOUT_DURATION` | 5 / 15분 | 영구 잠금은 쓰지 말 것(DoS + 자력복구 불가) |
