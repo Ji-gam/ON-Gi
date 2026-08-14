@@ -42,6 +42,20 @@ export interface TermAgreementItem {
   agreed: boolean;
 }
 
+export interface EmailVerificationRequest {
+  email: string;
+}
+
+export interface EmailVerificationResponse {
+  verification_sent: boolean;
+  message: string;
+}
+
+export interface EmailVerifyResult {
+  detail: string;
+  email: string;
+}
+
 export interface PhoneVerificationRequest {
   phone_number: string;
 }
