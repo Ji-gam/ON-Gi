@@ -1,4 +1,4 @@
-// ERD.dbml v1.8 · docs/CODING_RULES.md §6(ERD 동기화 규칙) canonical 산출물
+// ERD.dbml v1.9 · docs/CODING_RULES.md §6(ERD 동기화 규칙) canonical 산출물
 // DB CRUD 작업(모델 추가/변경, 마이그레이션 작성)마다 같은 커밋/PR에서 이 파일도 갱신 + 버전접미사 상향.
 // 대상 마이그레이션: app/core/db/migrations/versions/ff9d99f5db23_auth_kit_children_초기_스키마.py
 //                   app/core/db/migrations/versions/9d344b799f53_guardian_profile.py (T-ACC-2)
@@ -9,12 +9,14 @@
 //                   app/core/db/migrations/versions/c2d5e9f7a1b4_trust_evaluation.py (T-TRS-1)
 //                   app/core/db/migrations/versions/d3f6a2c9e8b1_trust_level_fsm.py (T-TRS-2)
 //                   app/core/db/migrations/versions/e4a7b1d0c9f2_point_ledger.py (T-PNT-1)
+//                   app/core/db/migrations/versions/f1a2b3c4d5e6_point_hold_care_cancel.py (T-PNT-2)
 // 소유: auth_kit(회원가입/인증) + app/models/children.py(T-ACC-1) + app/models/guardian_profile.py(T-ACC-2)
 //      + app/models/parenting_values.py(T-ACC-3, 접두어 acc_*) + app/models/work_schedule.py(T-SCH-1, 접두어 sch_*)
 //      + app/models/care_session.py + app/models/care_log.py(T-CAR-1/2, 접두어 car_*)
 //      + app/models/care_evaluation.py + app/models/trust_weights.py(T-TRS-1, 접두어 trs_*)
 //      + app/models/trust_level.py + app/models/joint_care_session.py + app/models/trust_settings.py(T-TRS-2)
 //      + app/models/point_account.py + app/models/point_ledger.py(T-PNT-1, 접두어 pnt_*)
+//      + app/models/point_hold.py(T-PNT-2) — care_sessions.cancelled_at/cancel_reason/at_fault_user_id도 T-PNT-2에서 추가
 
 Table users {
   id bigint [pk, increment]
@@ -211,17 +213,20 @@ Table care_sessions {
   care_date date [not null]
   start_slot smallint [not null, note: '0~47, work_schedules와 동일 48슬롯 단위']
   end_slot smallint [not null, note: '1~48, exclusive']
-  status varchar(20) [not null, note: 'enum: REQUESTED/CONFIRMED/REJECTED']
+  status varchar(20) [not null, note: 'enum: REQUESTED/CONFIRMED/REJECTED/CANCELLED/NO_SHOW(T-PNT-2)']
   checkin_at timestamp [note: 'REQ-F-CAR-03, T-CAR-2']
   checkin_distance_m float [note: '약속 장소 중심과의 거리(m) - 원본 GPS 좌표는 저장하지 않음(REQ-NF-SEC-05)']
   checkin_out_of_range boolean [not null, default: false]
   checkin_reason varchar(500) [note: '반경 밖 체크인 사유']
   checkout_at timestamp [note: 'REQ-F-CAR-05']
   actual_minutes int [note: '체크인·체크아웃 차이(분) - 포인트 정산 근거, 실제 정산은 T-PNT-1 범위']
+  cancelled_at timestamp [note: 'REQ-F-CAR-07, T-PNT-2 — 취소/노쇼 처리 시각']
+  cancel_reason varchar(500) [note: '취소/노쇼 사유']
+  at_fault_user_id bigint [ref: > users.id, note: 'ondelete SET NULL - 취소 마감 이후 취소/노쇼 귀책 당사자, TrustScoreService 노쇼율 조회 입력값']
   created_at timestamp [not null]
   updated_at timestamp [not null]
 
-  note: 'REQ-F-CAR-01/02/03/05 — 생성 시 [start_slot,end_slot) 전 구간이 제공자 가용+요청자 불가(상보) 조건을 만족해야 한다. 수락 시 L1 등급 전이(REQ-F-MAT-07)는 T-TRS-2 범위'
+  note: 'REQ-F-CAR-01/02/03/05/07 — 생성 시 [start_slot,end_slot) 전 구간이 제공자 가용+요청자 불가(상보) 조건을 만족해야 한다. 수락 시 L1 등급 전이(REQ-F-MAT-07)는 T-TRS-2 범위. 취소/노쇼는 T-PNT-2'
 }
 
 Table care_logs {
@@ -336,9 +341,23 @@ Table trust_settings {
 Table point_accounts {
   user_id bigint [pk, ref: > users.id, note: 'ondelete CASCADE']
   balance int [not null, note: '최초 조회 시 시드 포인트(12)로 지연 생성']
+  held_balance int [not null, default: 0, note: 'REQ-F-PNT-05, T-PNT-2 — 홀드 중인 포인트(balance에서 분리 보관, 상대에게 이전되지 않음)']
   updated_at timestamp [not null]
 
   note: 'REQ-F-PNT-04 — auth_kit 회원가입 훅이 아니라 최초 조회 시 지연 생성(trust_weights와 동일 패턴)'
+}
+
+Table point_holds {
+  id bigint [pk, increment]
+  care_session_id bigint [not null, unique, ref: > care_sessions.id, note: 'ondelete CASCADE - 세션당 1건']
+  payer_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed - 요청자']
+  payee_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE - 제공자']
+  amount int [not null, note: '예약된 슬롯(30분) 수 = end_slot - start_slot']
+  status varchar(20) [not null, note: 'enum: HELD/SETTLED/RELEASED/FORFEITED']
+  created_at timestamp [not null]
+  resolved_at timestamp [note: '정산/반환/몰수 처리 시각']
+
+  note: 'REQ-F-PNT-05 — 요청 확정(CONFIRMED) 시 생성. 완료 시 SETTLED(실사용분만 point_transactions로 이전), 취소 마감 전 취소/제공자 귀책 노쇼는 RELEASED(전액 반환), 취소 마감 후 취소/요청자 귀책 노쇼는 FORFEITED(전액 상대 이전)'
 }
 
 Table point_transactions {

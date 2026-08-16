@@ -22,6 +22,9 @@ class PointAccount(Base):
         primary_key=True,
     )
     balance: Mapped[int] = mapped_column(Integer, nullable=False, default=SEED_POINTS)
+    held_balance: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, doc="REQ-F-PNT-05 홀드 중인 포인트(예약, balance에서 분리 보관)"
+    )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
