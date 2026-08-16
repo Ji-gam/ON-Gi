@@ -25,7 +25,6 @@ from .schemas import (
     AuthUser,
     AvailabilityResponse,
     EmailVerificationRequest,
-    EmailVerificationResponse,
     FindEmailRequest,
     FindEmailResponse,
     LoginRequest,
@@ -33,7 +32,6 @@ from .schemas import (
     PasswordResetRequest,
     PhoneVerificationConfirmRequest,
     PhoneVerificationRequest,
-    PhoneVerificationResponse,
     SignUpRequest,
     SocialAuthResponse,
     SocialLoginRequest,
@@ -41,6 +39,7 @@ from .schemas import (
     TermResponse,
     TermsListResponse,
     TokenRefreshResponse,
+    VerificationResponse,
     WithdrawRequest,
 )
 from .security import (
@@ -174,11 +173,11 @@ async def check_phone(session: Session, phone_number: str) -> AvailabilityRespon
 # ══════════════════════════════════════════════════════════════════════════
 @auth_router.post(
     "/email/verify-request",
-    response_model=EmailVerificationResponse,
+    response_model=VerificationResponse,
     summary="이메일 인증 메일 발송",
     responses={status.HTTP_409_CONFLICT: {"description": "이미 사용중인 이메일"}},
 )
-async def request_email_verification(session: Session, request: EmailVerificationRequest) -> EmailVerificationResponse:
+async def request_email_verification(session: Session, request: EmailVerificationRequest) -> VerificationResponse:
     token, _ = await _service(session).request_email_verification(str(request.email))
     link = f"{config.FRONTEND_BASE_URL}/auth/email/verify?token={token}"
     minutes = int(config.EMAIL_VERIFICATION_TTL.total_seconds() // 60)
@@ -188,7 +187,7 @@ async def request_email_verification(session: Session, request: EmailVerificatio
         html_body=f'<p>아래 링크를 클릭하면 인증이 완료됩니다. (유효시간 {minutes}분)</p><p><a href="{link}">{link}</a></p>',
     )
     # 발송 실패로 500을 내지 않는다 - 토큰 행은 이미 만들어졌고, 프론트는 "재발송" 안내만 하면 된다.
-    return EmailVerificationResponse(
+    return VerificationResponse(
         verification_sent=sent,
         message="인증 메일을 보냈습니다." if sent else "메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.",
     )
@@ -205,17 +204,17 @@ async def verify_email(session: Session, token: str) -> dict[str, str]:
 # ══════════════════════════════════════════════════════════════════════════
 @auth_router.post(
     "/phone/verify-request",
-    response_model=PhoneVerificationResponse,
+    response_model=VerificationResponse,
     summary="휴대폰 본인확인 코드(OTP) 발송",
     responses={status.HTTP_409_CONFLICT: {"description": "이미 사용중인 휴대폰 번호"}},
 )
-async def request_phone_verification(session: Session, request: PhoneVerificationRequest) -> PhoneVerificationResponse:
+async def request_phone_verification(session: Session, request: PhoneVerificationRequest) -> VerificationResponse:
     code, _ = await _service(session).request_phone_verification(request.phone_number)
     minutes = int(config.PHONE_VERIFICATION_TTL.total_seconds() // 60)
     sent = await send_sms(
         to=request.phone_number, body=f"[인증] 인증번호 [{code}]를 입력해주세요. (유효시간 {minutes}분)"
     )
-    return PhoneVerificationResponse(
+    return VerificationResponse(
         verification_sent=sent,
         message="인증 코드를 보냈습니다." if sent else "코드 발송에 실패했습니다. 잠시 후 다시 시도해주세요.",
     )

@@ -6,7 +6,7 @@ from typing import Annotated, Self
 from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from . import validators
-from .models import AuthProvider, Gender, OnboardingStatus
+from .models import Gender, OnboardingStatus
 
 
 class TermAgreementItem(BaseModel):
@@ -96,19 +96,18 @@ class EmailVerificationRequest(BaseModel):
     email: Annotated[EmailStr, Field(max_length=254)]
 
 
-class EmailVerificationResponse(BaseModel):
-    # SMTP 설정 누락 등으로 발송 자체가 실패해도 500으로 터뜨리지 않고 이 값으로 알려준다.
+class VerificationResponse(BaseModel):
+    """이메일 인증메일/휴대폰 OTP 발송 응답 공통 형태.
+
+    SMTP/SMS 설정 누락 등으로 발송 자체가 실패해도 500으로 터뜨리지 않고 이 값으로 알려준다.
+    """
+
     verification_sent: bool
     message: str
 
 
 class PhoneVerificationRequest(BaseModel):
     phone_number: Annotated[str, Field(examples=["010-1234-5678"]), AfterValidator(validators.validate_phone_number)]
-
-
-class PhoneVerificationResponse(BaseModel):
-    verification_sent: bool
-    message: str
 
 
 class PhoneVerificationConfirmRequest(BaseModel):
@@ -212,8 +211,3 @@ class WithdrawRequest(BaseModel):
         Field(None, description="본인 확인용 현재 비밀번호. 소셜/게스트 계정은 비밀번호가 없어 생략한다."),
     ]
     reason: Annotated[str | None, Field(None, max_length=500)]
-
-
-class ProviderInfo(BaseModel):
-    provider: AuthProvider
-    connected: bool
