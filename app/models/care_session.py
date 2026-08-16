@@ -32,6 +32,8 @@ class CareSessionStatus(StrEnum):
     REQUESTED = "REQUESTED"
     CONFIRMED = "CONFIRMED"
     REJECTED = "REJECTED"
+    CANCELLED = "CANCELLED"
+    NO_SHOW = "NO_SHOW"
 
 
 class CareSession(Base):
@@ -57,6 +59,14 @@ class CareSession(Base):
     checkin_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
     checkout_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     actual_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancel_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    at_fault_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        doc="REQ-F-CAR-07 취소 마감 이후 취소/노쇼 시 귀책 당사자",
+    )
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(

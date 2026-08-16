@@ -24,8 +24,10 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
     description="REQ-F-PNT-03/04. 최초 조회 시 시드 포인트로 계정이 생성된다.",
 )
 async def get_balance(session: Session, user: CurrentUser) -> BalanceResponse:
-    balance = await PointLedgerService(session).get_balance(user.id)
-    return BalanceResponse(user_id=user.id, balance=balance)
+    service = PointLedgerService(session)
+    balance = await service.get_balance(user.id)
+    held_balance = await service.get_held_balance(user.id)
+    return BalanceResponse(user_id=user.id, balance=balance, held_balance=held_balance)
 
 
 @pnt_router.get(

@@ -1,7 +1,7 @@
 """REQ-F-TRS-06/08: 신뢰 점수는 가중합으로 산출되고, 가중치는 운영자만 변경할 수 있으며
 변경 시 이력이 남는다."""
 
-from datetime import date
+from datetime import date, timedelta
 
 import h3
 import pytest
@@ -143,3 +143,41 @@ async def test_score_reflects_rating_and_journal_completion():
     await TrustEvaluationService(session).submit(completed.id, requester, 5, ["시간 준수"])
     after_rating = await TrustScoreService(session).calculate_score(provider.id)
     assert after_rating > before  # 별점 5는 중립값(3점 상당)보다 높아 점수가 오른다
+
+
+async def test_no_show_lowers_at_fault_users_score_only():
+    session = await _session()
+    requester = await _signed_up_user(
+        session, email="s5_req@example.com", nickname="점수요청자5", phone="010-9105-0001"
+    )
+    provider = await _signed_up_user(
+        session, email="s5_prov@example.com", nickname="점수제공자5", phone="010-9105-0002"
+    )
+
+    child = await ChildService(session).create_child(
+        requester,
+        months_old=12,
+        gender=ChildGender.MALE,
+        temperament_memo=None,
+        allergies=None,
+        conditions=None,
+        medications=None,
+    )
+    await WorkScheduleService(session).register_shift(requester, CARE_DATE, ShiftTemplate.DAY)
+    care_session = await CareSessionService(session).create_request(
+        requester, provider.id, child.id, MEETING_H3, CARE_DATE, 14, 20
+    )
+    confirmed = await CareSessionService(session).accept(care_session.id, provider)
+    confirmed.care_date = date.today() - timedelta(days=1)
+    await session.commit()
+
+    requester_score_before = await TrustScoreService(session).calculate_score(requester.id)
+    provider_score_before = await TrustScoreService(session).calculate_score(provider.id)
+
+    await CareSessionService(session).report_no_show(confirmed.id, provider, "요청자가 아이를 데려오지 않음")
+
+    requester_score_after = await TrustScoreService(session).calculate_score(requester.id)
+    provider_score_after = await TrustScoreService(session).calculate_score(provider.id)
+
+    assert requester_score_after < requester_score_before
+    assert provider_score_after == provider_score_before

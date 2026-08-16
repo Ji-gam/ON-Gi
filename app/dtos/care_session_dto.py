@@ -23,6 +23,14 @@ class CheckinRequest(BaseModel):
     reason: str | None = Field(default=None, description="반경 밖 체크인 사유(반경 밖일 때 필수)")
 
 
+class CancelRequest(BaseModel):
+    reason: str | None = Field(default=None, description="취소 사유")
+
+
+class NoShowReportRequest(BaseModel):
+    reason: str | None = Field(default=None, description="노쇼 신고 사유")
+
+
 class CareSessionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -41,3 +49,6 @@ class CareSessionResponse(BaseModel):
     checkin_reason: str | None
     checkout_at: datetime | None
     actual_minutes: int | None = Field(default=None, description="체크인·체크아웃 차이(분), 포인트 정산 근거")
+    cancelled_at: datetime | None = Field(default=None, description="취소·노쇼 처리 시각")
+    cancel_reason: str | None = Field(default=None, description="취소·노쇼 사유")
+    at_fault_user_id: int | None = Field(default=None, description="취소 마감 이후 취소/노쇼 귀책 당사자")

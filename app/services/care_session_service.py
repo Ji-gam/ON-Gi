@@ -5,7 +5,7 @@
 """
 
 import math
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import h3
 from fastapi import HTTPException, status
@@ -26,6 +26,7 @@ from auth_kit.models import User
 PENDING_EVALUATION_MESSAGE = "완료된 세션에 대한 평가를 먼저 제출하세요."
 
 CHECKIN_RADIUS_M = 200.0  # 요구사항정의서에 수치 미명시 - 임의 가정(REQ-F-CAR-03)
+CANCELLATION_DEADLINE_HOURS = 2  # 요구사항정의서에 "취소 마감 시각" 수치 미명시 - 임의 가정(REQ-F-PNT-05)
 
 
 def _range_bits(start_slot: int, end_slot: int) -> int:
@@ -35,6 +36,12 @@ def _range_bits(start_slot: int, end_slot: int) -> int:
 def _aware(value: datetime) -> datetime:
     """SQLite는 timezone-aware 컬럼도 naive datetime으로 되돌려줄 수 있어 UTC로 보정한다."""
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def _scheduled_start(care_session: CareSession) -> datetime:
+    return datetime.combine(care_session.care_date, datetime.min.time(), tzinfo=UTC) + timedelta(
+        minutes=care_session.start_slot * 30
+    )
 
 
 def _haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -137,6 +144,8 @@ class CareSessionService:
         )
         await self.session.commit()
         await self.session.refresh(care_session)
+
+        await self.point_ledger_service.create_hold(care_session)
         return care_session
 
     async def reject(self, session_id: int, provider: User) -> CareSession:
@@ -200,4 +209,69 @@ class CareSessionService:
             payload={"session_id": session_id, "actual_minutes": care_session.actual_minutes},
         )
         await self.session.commit()
+        return care_session
+
+    async def _get_cancellable_session(self, session_id: int, actor: User) -> CareSession:
+        care_session = await self.repo.get(session_id)
+        if care_session is None or actor.id not in (care_session.requester_id, care_session.provider_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "세션을 찾을 수 없습니다.")
+        if care_session.status not in (CareSessionStatus.REQUESTED, CareSessionStatus.CONFIRMED):
+            raise HTTPException(status.HTTP_409_CONFLICT, "취소할 수 없는 상태입니다.")
+        if care_session.checkin_at is not None:
+            raise HTTPException(status.HTTP_409_CONFLICT, "체크인 이후에는 취소할 수 없습니다.")
+        return care_session
+
+    async def cancel(self, session_id: int, actor: User, reason: str | None) -> CareSession:
+        """REQ-F-CAR-07/PNT-05. 요청자·제공자 모두 취소 가능. CONFIRMED 상태(홀드 존재)에서
+        취소 마감 시각(세션 시작 `CANCELLATION_DEADLINE_HOURS`시간 전) 이후 취소는 취소한
+        본인 귀책으로 기록되고 홀드가 상대에게 이전된다."""
+        care_session = await self._get_cancellable_session(session_id, actor)
+        was_confirmed = care_session.status == CareSessionStatus.CONFIRMED
+        now = datetime.now(UTC)
+        past_deadline = now > _scheduled_start(care_session) - timedelta(hours=CANCELLATION_DEADLINE_HOURS)
+
+        care_session.status = CareSessionStatus.CANCELLED
+        care_session.cancelled_at = now
+        care_session.cancel_reason = reason
+        if was_confirmed and past_deadline:
+            care_session.at_fault_user_id = actor.id
+        await self.session.commit()
+        await self.session.refresh(care_session)
+
+        if was_confirmed:
+            await self.point_ledger_service.resolve_hold_on_cancel(care_session, past_deadline)
+        return care_session
+
+    async def report_no_show(self, session_id: int, reporter: User, reason: str | None) -> CareSession:
+        """REQ-F-CAR-07. 세션 종료 시각이 지나도록 체크인이 없으면 상대(체크인 없는 쪽의
+        반대 당사자)가 무단 불참을 신고할 수 있다. 신고자의 반대편이 귀책자로 기록되고,
+        요청자 귀책이면 홀드가 제공자에게 이전되며, 제공자 귀책이면 홀드가 요청자에게
+        반환된다(신뢰 점수 반영은 `TrustScoreService`가 `at_fault_user_id`를 조회)."""
+        care_session = await self.repo.get(session_id)
+        if care_session is None or reporter.id not in (care_session.requester_id, care_session.provider_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "세션을 찾을 수 없습니다.")
+        if care_session.status != CareSessionStatus.CONFIRMED:
+            raise HTTPException(status.HTTP_409_CONFLICT, "확정된 세션만 노쇼 처리할 수 있습니다.")
+        if care_session.checkin_at is not None:
+            raise HTTPException(status.HTTP_409_CONFLICT, "이미 체크인한 세션은 노쇼로 처리할 수 없습니다.")
+
+        scheduled_end = _scheduled_start(care_session) + timedelta(
+            minutes=(care_session.end_slot - care_session.start_slot) * 30
+        )
+        now = datetime.now(UTC)
+        if now < scheduled_end:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "세션 종료 시각 이전에는 노쇼 처리할 수 없습니다.")
+
+        at_fault_id = (
+            care_session.provider_id if reporter.id == care_session.requester_id else care_session.requester_id
+        )
+
+        care_session.status = CareSessionStatus.NO_SHOW
+        care_session.cancelled_at = now
+        care_session.cancel_reason = reason
+        care_session.at_fault_user_id = at_fault_id
+        await self.session.commit()
+        await self.session.refresh(care_session)
+
+        await self.point_ledger_service.resolve_hold_on_no_show(care_session)
         return care_session

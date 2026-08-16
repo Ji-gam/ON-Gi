@@ -8,7 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db.databases import get_db
 from app.dependencies import get_current_user
 from app.dtos.care_log_dto import CareLogResponse, CareLogUpsert
-from app.dtos.care_session_dto import CareRequestCreate, CareSessionResponse, CheckinRequest
+from app.dtos.care_session_dto import (
+    CancelRequest,
+    CareRequestCreate,
+    CareSessionResponse,
+    CheckinRequest,
+    NoShowReportRequest,
+)
 from app.services.care_log_service import CareLogService
 from app.services.care_session_service import CareSessionService
 from app.services.trust_level_service import TrustLevelService
@@ -98,6 +104,40 @@ async def checkin(session: Session, user: CurrentUser, session_id: int, request:
 )
 async def checkout(session: Session, user: CurrentUser, session_id: int) -> CareSessionResponse:
     care_session = await CareSessionService(session).checkout(session_id, user)
+    return CareSessionResponse.model_validate(care_session)
+
+
+@car_router.post(
+    "/requests/{session_id}/cancel",
+    response_model=CareSessionResponse,
+    summary="돌봄 요청/세션 취소",
+    description="REQ-F-CAR-07/PNT-05. 요청자·제공자 모두 취소 가능. 체크인 이후에는 취소할 수 없다. "
+    "확정된 세션의 홀드는 취소 마감 시각 이전 취소면 전액 반환, 이후 취소면 취소한 쪽 귀책으로 상대에게 이전된다.",
+    responses={404: {"description": "세션 없음"}, 409: {"description": "취소 불가 상태(이미 체크인 등)"}},
+)
+async def cancel_request(
+    session: Session, user: CurrentUser, session_id: int, request: CancelRequest
+) -> CareSessionResponse:
+    care_session = await CareSessionService(session).cancel(session_id, user, request.reason)
+    return CareSessionResponse.model_validate(care_session)
+
+
+@car_router.post(
+    "/requests/{session_id}/no-show",
+    response_model=CareSessionResponse,
+    summary="무단 불참(노쇼) 신고",
+    description="REQ-F-CAR-07/PNT-05. 세션 종료 시각이 지나도록 체크인이 없으면 상대 당사자가 신고할 수 있다. "
+    "신고자의 반대편이 귀책자로 기록되며, 요청자 귀책이면 홀드가 제공자에게 이전, 제공자 귀책이면 요청자에게 반환된다.",
+    responses={
+        400: {"description": "세션 종료 시각 이전"},
+        404: {"description": "세션 없음"},
+        409: {"description": "확정 상태가 아니거나 이미 체크인함"},
+    },
+)
+async def report_no_show(
+    session: Session, user: CurrentUser, session_id: int, request: NoShowReportRequest
+) -> CareSessionResponse:
+    care_session = await CareSessionService(session).report_no_show(session_id, user, request.reason)
     return CareSessionResponse.model_validate(care_session)
 
 
