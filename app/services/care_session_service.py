@@ -13,10 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.utils.schedule_slots import FULL_AVAILABLE_MASK
 from app.models.care_session import CareSession, CareSessionStatus
+from app.models.hypothesis_event import HypothesisEventType
 from app.repositories.care_evaluation_repository import CareEvaluationRepository
 from app.repositories.care_session_repository import CareSessionRepository
 from app.repositories.child_repository import ChildRepository
 from app.repositories.work_schedule_repository import WorkScheduleRepository
+from app.services.hypothesis_event_service import HypothesisEventService
 from app.services.point_ledger_service import PointLedgerService
 from app.services.trust_level_service import TrustLevelService
 from auth_kit.models import User
@@ -53,6 +55,7 @@ class CareSessionService:
         self.evaluation_repo = CareEvaluationRepository(session)
         self.trust_level_service = TrustLevelService(session)
         self.point_ledger_service = PointLedgerService(session)
+        self.event_service = HypothesisEventService(session)
 
     async def create_request(
         self,
@@ -100,7 +103,14 @@ class CareSessionService:
             end_slot=end_slot,
             status=CareSessionStatus.REQUESTED,
         )
+        is_rematch = await self.repo.has_completed_pairing(requester.id, provider_id)
         self.repo.add(care_session)
+        self.event_service.log(
+            HypothesisEventType.REMATCH_REQUESTED if is_rematch else HypothesisEventType.REQUEST_CREATED,
+            requester.id,
+            provider_id,
+            payload={"care_date": care_date.isoformat(), "is_solo": is_solo},
+        )
         await self.session.commit()
         await self.session.refresh(care_session)
         return care_session
@@ -119,6 +129,12 @@ class CareSessionService:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, PENDING_EVALUATION_MESSAGE)
         care_session.status = CareSessionStatus.CONFIRMED
         await self.trust_level_service.grant_l1(care_session.requester_id, care_session.provider_id)
+        self.event_service.log(
+            HypothesisEventType.REQUEST_ACCEPTED,
+            provider.id,
+            care_session.requester_id,
+            payload={"session_id": session_id},
+        )
         await self.session.commit()
         await self.session.refresh(care_session)
         return care_session
@@ -126,6 +142,12 @@ class CareSessionService:
     async def reject(self, session_id: int, provider: User) -> CareSession:
         care_session = await self._get_requested_session(session_id, provider)
         care_session.status = CareSessionStatus.REJECTED
+        self.event_service.log(
+            HypothesisEventType.REQUEST_REJECTED,
+            provider.id,
+            care_session.requester_id,
+            payload={"session_id": session_id},
+        )
         await self.session.commit()
         await self.session.refresh(care_session)
         return care_session
@@ -171,4 +193,11 @@ class CareSessionService:
         await self.session.refresh(care_session)
 
         await self.point_ledger_service.settle_care_session(care_session)
+        self.event_service.log(
+            HypothesisEventType.SESSION_COMPLETED,
+            provider.id,
+            care_session.requester_id,
+            payload={"session_id": session_id, "actual_minutes": care_session.actual_minutes},
+        )
+        await self.session.commit()
         return care_session
