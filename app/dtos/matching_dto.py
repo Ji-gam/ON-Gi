@@ -12,3 +12,4 @@ class CandidateResponse(BaseModel):
     trust_score: float = Field(description="신뢰 점수(REQ-F-TRS-06/08 가중합), 0~1")
     average_rating: float | None = Field(default=None, description="REQ-F-TRS-07 별점 평균, 평가 없으면 null")
     top_tags: list[str] = Field(default_factory=list, description="REQ-F-TRS-07 후기 태그 상위 3개")
+    reason: str = Field(description="REQ-F-MAT-06 추천 근거 문장(규칙 기반), 2문장 이내")

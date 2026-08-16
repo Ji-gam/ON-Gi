@@ -22,6 +22,7 @@ from app.core.utils.matching_weights import (
     WEIGHT_TRUST,
     WEIGHT_VALUES_SIMILARITY,
 )
+from app.core.utils.recommendation_reason import build_recommendation_reason
 from app.core.utils.schedule_slots import FULL_AVAILABLE_MASK, SLOT_COUNT, complementary_slot_counts
 from app.models.children import Child
 from app.models.hypothesis_event import HypothesisEventType
@@ -49,6 +50,7 @@ class MatchCandidate:
     trust_score: float
     average_rating: float | None
     top_tags: list[str]
+    reason: str
 
 
 def _clamp(value: float, lo: float = 0.0, hi: float = 1.0) -> float:
@@ -153,6 +155,12 @@ class MatchingService:
             ratings = await self.evaluation_repo.list_ratings_for_evaluatee(candidate_user.id)
             average_rating = sum(ratings) / len(ratings) if ratings else None
             top_tags = await self.evaluation_repo.top_tags_for_evaluatee(candidate_user.id)
+            reason = build_recommendation_reason(
+                distance_m=distance_m,
+                complementary_score=complementary_score,
+                values_similarity=values_similarity,
+                trust_score=trust_score,
+            )
 
             candidates.append(
                 MatchCandidate(
@@ -166,6 +174,7 @@ class MatchingService:
                     trust_score=trust_score,
                     average_rating=average_rating,
                     top_tags=top_tags,
+                    reason=reason,
                 )
             )
 
