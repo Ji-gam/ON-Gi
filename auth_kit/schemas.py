@@ -211,5 +211,3 @@ class WithdrawRequest(BaseModel):
         Field(None, description="본인 확인용 현재 비밀번호. 소셜/게스트 계정은 비밀번호가 없어 생략한다."),
     ]
     reason: Annotated[str | None, Field(None, max_length=500)]
-
-
