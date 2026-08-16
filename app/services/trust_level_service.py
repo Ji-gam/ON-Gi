@@ -8,12 +8,14 @@ from datetime import date
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.hypothesis_event import HypothesisEventType
 from app.models.joint_care_session import JointCareSession, JointCareSessionStatus
 from app.models.trust_level import TrustLevel, TrustLevelHistory, TrustRelationship
 from app.models.trust_settings import MIN_REQUIRED_JOINT_COUNT, TrustSettings
 from app.repositories.joint_care_session_repository import JointCareSessionRepository
 from app.repositories.trust_relationship_repository import TrustRelationshipRepository
 from app.repositories.trust_settings_repository import TrustSettingsRepository
+from app.services.hypothesis_event_service import HypothesisEventService
 from auth_kit.models import User
 
 SOLO_REQUEST_BLOCKED_MESSAGE = "단독 위탁 요청은 상대와의 신뢰 등급이 L3일 때만 생성할 수 있습니다."
@@ -25,6 +27,7 @@ class TrustLevelService:
         self.relationship_repo = TrustRelationshipRepository(session)
         self.joint_repo = JointCareSessionRepository(session)
         self.settings_repo = TrustSettingsRepository(session)
+        self.event_service = HypothesisEventService(session)
 
     async def get_relationship(self, user_a_id: int, user_b_id: int) -> TrustRelationship | None:
         return await self.relationship_repo.get(user_a_id, user_b_id)
@@ -43,6 +46,12 @@ class TrustLevelService:
         low, high = (user_a_id, user_b_id) if user_a_id < user_b_id else (user_b_id, user_a_id)
         relationship = TrustRelationship(user_a_id=low, user_b_id=high, level=TrustLevel.L1)
         self.relationship_repo.add(relationship)
+        self.event_service.log(
+            HypothesisEventType.TRUST_LEVEL_TRANSITION,
+            user_a_id,
+            user_b_id,
+            payload={"previous_level": None, "new_level": TrustLevel.L1.value},
+        )
         await self.session.commit()
         await self.session.refresh(relationship)
         return relationship
@@ -71,6 +80,12 @@ class TrustLevelService:
                 )
             )
             relationship.level = TrustLevel.L2
+            self.event_service.log(
+                HypothesisEventType.TRUST_LEVEL_TRANSITION,
+                relationship.user_a_id,
+                relationship.user_b_id,
+                payload={"previous_level": TrustLevel.L1.value, "new_level": TrustLevel.L2.value},
+            )
 
         await self.session.commit()
         await self.session.refresh(joint_session)
@@ -105,6 +120,12 @@ class TrustLevelService:
                     )
                 )
                 relationship.level = TrustLevel.L3
+                self.event_service.log(
+                    HypothesisEventType.TRUST_LEVEL_TRANSITION,
+                    relationship.user_a_id,
+                    relationship.user_b_id,
+                    payload={"previous_level": TrustLevel.L2.value, "new_level": TrustLevel.L3.value},
+                )
 
         await self.session.commit()
         await self.session.refresh(joint_session)
@@ -141,6 +162,12 @@ class TrustLevelService:
                 changed_by_user_id=admin.id,
                 reason=reason,
             )
+        )
+        self.event_service.log(
+            HypothesisEventType.TRUST_LEVEL_TRANSITION,
+            relationship.user_a_id,
+            relationship.user_b_id,
+            payload={"previous_level": previous_level.value, "new_level": new_level.value, "reason": reason},
         )
         await self.session.commit()
         await self.session.refresh(relationship)

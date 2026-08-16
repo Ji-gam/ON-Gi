@@ -24,11 +24,13 @@ from app.core.utils.matching_weights import (
 )
 from app.core.utils.schedule_slots import FULL_AVAILABLE_MASK, SLOT_COUNT, complementary_slot_counts
 from app.models.children import Child
+from app.models.hypothesis_event import HypothesisEventType
 from app.repositories.care_evaluation_repository import CareEvaluationRepository
 from app.repositories.child_repository import ChildRepository
 from app.repositories.guardian_profile_repository import GuardianProfileRepository
 from app.repositories.parenting_values_repository import ParentingValuesRepository
 from app.repositories.work_schedule_repository import WorkScheduleRepository
+from app.services.hypothesis_event_service import HypothesisEventService
 from app.services.trust_score_service import TrustScoreService
 from auth_kit.models import User
 
@@ -88,6 +90,7 @@ class MatchingService:
         self.child_repo = ChildRepository(session)
         self.evaluation_repo = CareEvaluationRepository(session)
         self.trust_score_service = TrustScoreService(session)
+        self.event_service = HypothesisEventService(session)
 
     async def find_candidates(self, user: User, for_date: date) -> list[MatchCandidate]:
         own_profile = await self.guardian_repo.get(user.id)
@@ -167,4 +170,15 @@ class MatchingService:
             )
 
         candidates.sort(key=lambda c: c.total_score, reverse=True)
+
+        for candidate in candidates:
+            self.event_service.log(
+                HypothesisEventType.CANDIDATE_EXPOSURE,
+                user.id,
+                candidate.user_id,
+                payload={"total_score": candidate.total_score, "for_date": for_date.isoformat()},
+            )
+        if candidates:
+            await self.session.commit()
+
         return candidates
