@@ -177,3 +177,6 @@ async def test_candidates_sorted_desc_and_expose_values_and_complementary_separa
     assert by_id[close_values.id].values_similarity > by_id[far_values.id].values_similarity
     assert by_id[close_values.id].complementary_score == by_id[far_values.id].complementary_score
     assert by_id[close_values.id].total_score > by_id[far_values.id].total_score
+    assert by_id[close_values.id].reason.endswith(".")
+    assert "양육관이 가깝다" in by_id[close_values.id].reason
+    assert "양육관이 가깝다" not in by_id[far_values.id].reason

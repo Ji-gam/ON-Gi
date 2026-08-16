@@ -42,6 +42,7 @@ async def list_candidates(session: Session, user: CurrentUser, for_date: date | 
             trust_score=c.trust_score,
             average_rating=c.average_rating,
             top_tags=c.top_tags,
+            reason=c.reason,
         )
         for c in candidates
     ]

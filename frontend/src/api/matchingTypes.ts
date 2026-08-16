@@ -9,4 +9,7 @@ export interface CandidateResponse {
   distance_m: number;
   age_similarity: number;
   trust_score: number;
+  average_rating: number | null;
+  top_tags: string[];
+  reason: string;
 }
