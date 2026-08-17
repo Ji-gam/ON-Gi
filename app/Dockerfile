@@ -18,7 +18,12 @@ COPY pyproject.toml uv.lock alembic.ini ./
 RUN uv sync --group app --no-dev --frozen
 
 # 4. 로컬 소스 코드를 컨테이너 내부로 복사합니다. (alembic.ini의 script_location이 가리키는 app/core/db/migrations 포함)
+# app/main.py와 app/models/__init__.py가 auth_kit·security_kit을 최상위 패키지로 import하므로
+# 이 두 디렉터리도 같이 복사해야 한다 — 빠지면 컨테이너 기동/마이그레이션이
+# ModuleNotFoundError로 죽는다(venv 실행은 저장소 루트가 cwd라 안 겪던 문제).
 COPY ./app ./app
+COPY ./auth_kit ./auth_kit
+COPY ./security_kit ./security_kit
 
 # 5. 해당 이미지를 활용하여 도커컨테이너 실행시 실행되는 명령어입니다.
 # FastAPI를 uvicorn을 활용하여 비동기 환경으로 서버를 실행합니다.
