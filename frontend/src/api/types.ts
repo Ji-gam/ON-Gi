@@ -42,6 +42,11 @@ export interface TermAgreementItem {
   agreed: boolean;
 }
 
+export interface AvailabilityResponse {
+  available: boolean;
+  message: string;
+}
+
 export interface PhoneVerificationRequest {
   phone_number: string;
 }
