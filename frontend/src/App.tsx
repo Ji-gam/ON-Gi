@@ -8,6 +8,7 @@ import HomePage from "./pages/HomePage/HomePage";
 import LoginPage from "./pages/LoginPage/LoginPage";
 import MatchingPage from "./pages/MatchingPage/MatchingPage";
 import ParentingValuesPage from "./pages/ParentingValuesPage/ParentingValuesPage";
+import ScreenIndexPage from "./pages/ScreenIndexPage/ScreenIndexPage";
 import SignupPage from "./pages/SignupPage/SignupPage";
 import StartPage from "./pages/StartPage/StartPage";
 import WorkSchedulePage from "./pages/WorkSchedulePage/WorkSchedulePage";
@@ -15,8 +16,10 @@ import WorkSchedulePage from "./pages/WorkSchedulePage/WorkSchedulePage";
 // 도메인 화면(페이지)은 src/pages 아래에 추가하고 여기에 라우트를 등록한다.
 // 로그인 필요 라우트는 Layout 하위 RequireAuth로 감싼다.
 export const router = createBrowserRouter([
-  // 앱 진입점 — 지금까지 만든 화면 모음. 실제 홈 대시보드는 /home으로 옮겼다.
+  // 앱 진입점 — 실제 사용자용 시작 화면.
   { path: "/", element: <StartPage /> },
+  // 개발 중 화면 확인용 — 실제 서비스 흐름에는 노출되지 않는다.
+  { path: "/screens", element: <ScreenIndexPage /> },
   { path: "/login", element: <LoginPage /> },
   { path: "/signup", element: <SignupPage /> },
   {

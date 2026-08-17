@@ -1,45 +1,40 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-const SCREENS = [
-  { to: "/login", scr: "SCR-01", label: "로그인" },
-  { to: "/signup", scr: "SCR-02", label: "회원가입" },
-  { to: "/guardian-profile", scr: "SCR-03", label: "보호자 프로필" },
-  { to: "/children", scr: "SCR-04·05", label: "아동 프로필 · 민감정보" },
-  { to: "/parenting-values", scr: "SCR-06", label: "양육 가치관 진단" },
-  { to: "/work-schedule", scr: "SCR-07", label: "근무표 등록" },
-  { to: "/home", scr: "SCR-09", label: "홈 대시보드" },
-  { to: "/matching", scr: "SCR-10", label: "매칭 후보 목록" },
-];
-
+// 사용자에게 보이는 실제 앱 진입점. 개발용 화면 모음은 /screens(ScreenIndexPage)로 옮겼다.
 export default function StartPage() {
+  const navigate = useNavigate();
+  const [imageFailed, setImageFailed] = useState(false);
+
   return (
-    <main className="flex min-h-screen justify-center bg-background px-6 py-14">
-      <div className="flex w-full max-w-[480px] flex-col items-center">
-        <div className="flex h-[92px] w-[92px] flex-col items-center justify-center gap-[9px] rounded-lg bg-primary p-3">
-          <span className="text-xl font-medium leading-none text-primary-foreground">품</span>
-          <span className="h-px w-full bg-primary-foreground/75" />
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-medium leading-none text-primary-foreground">앗</span>
-            <span className="h-[18px] w-px bg-primary-foreground/75" />
-            <span className="text-lg font-medium leading-none text-primary-foreground">이</span>
+    <main className="flex min-h-screen flex-col items-center justify-between bg-background px-6 py-14">
+      <div className="flex flex-1 flex-col items-center justify-center gap-8">
+        {imageFailed ? (
+          <div className="flex h-[280px] w-full max-w-[320px] items-center justify-center rounded-2xl bg-secondary">
+            <span className="text-xs text-muted-foreground">삽화 준비 중</span>
           </div>
-        </div>
+        ) : (
+          <img
+            src="/images/start-illustration.png"
+            alt="할머니, 아이, 엄마가 손을 잡고 마을길을 걷는 모습"
+            className="w-full max-w-[320px]"
+            onError={() => setImageFailed(true)}
+          />
+        )}
 
-        <h1 className="mt-3.5 text-xs text-muted-foreground">지금까지 만든 화면 모음</h1>
-
-        <div className="mt-7 flex w-full flex-col gap-2">
-          {SCREENS.map((screen) => (
-            <Link
-              key={screen.to}
-              to={screen.to}
-              className="flex items-center justify-between rounded-lg border border-border bg-secondary px-4 py-3"
-            >
-              <span className="text-sm font-medium text-foreground">{screen.label}</span>
-              <span className="text-[11px] text-muted-foreground">{screen.scr}</span>
-            </Link>
-          ))}
-        </div>
+        <p className="text-center text-sm font-medium leading-relaxed text-foreground">
+          한 아이를 키우려면 온 마을이 필요합니다.
+          <br />그 마을을, 온기와 함께 만들어가요.
+        </p>
       </div>
+
+      <button
+        type="button"
+        onClick={() => navigate("/login")}
+        className="w-full max-w-[480px] rounded-lg border-0 bg-primary py-3 text-sm font-medium text-primary-foreground"
+      >
+        시작하기
+      </button>
     </main>
   );
 }
