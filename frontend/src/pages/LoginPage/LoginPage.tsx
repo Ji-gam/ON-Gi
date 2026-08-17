@@ -87,8 +87,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <h1 className="mt-3.5 text-xs text-muted-foreground">사람들 사이 에너지 스위치를 켜다</h1>
-
         <form onSubmit={handleSubmit} className="mt-7 flex w-full flex-col gap-2.5">
           <div>
             <label htmlFor="email" className="sr-only">
@@ -117,7 +115,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground"
+              className="w-full border-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
             <button
               type="button"
