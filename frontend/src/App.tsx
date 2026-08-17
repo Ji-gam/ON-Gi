@@ -9,17 +9,20 @@ import LoginPage from "./pages/LoginPage/LoginPage";
 import MatchingPage from "./pages/MatchingPage/MatchingPage";
 import ParentingValuesPage from "./pages/ParentingValuesPage/ParentingValuesPage";
 import SignupPage from "./pages/SignupPage/SignupPage";
+import StartPage from "./pages/StartPage/StartPage";
 import WorkSchedulePage from "./pages/WorkSchedulePage/WorkSchedulePage";
 
 // 도메인 화면(페이지)은 src/pages 아래에 추가하고 여기에 라우트를 등록한다.
 // 로그인 필요 라우트는 Layout 하위 RequireAuth로 감싼다.
 export const router = createBrowserRouter([
+  // 앱 진입점 — 지금까지 만든 화면 모음. 실제 홈 대시보드는 /home으로 옮겼다.
+  { path: "/", element: <StartPage /> },
   { path: "/login", element: <LoginPage /> },
   { path: "/signup", element: <SignupPage /> },
   {
     element: <Layout />,
     children: [
-      { path: "/", element: <HomePage /> },
+      { path: "/home", element: <HomePage /> },
       {
         element: <RequireAuth />,
         children: [

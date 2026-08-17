@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 
 const NAV_ITEMS = [
-  { to: "/", label: "홈" },
+  { to: "/home", label: "홈" },
   { to: "/children", label: "아동 관리" },
   { to: "/guardian-profile", label: "보호자 프로필" },
   { to: "/parenting-values", label: "양육 가치관 진단" },
