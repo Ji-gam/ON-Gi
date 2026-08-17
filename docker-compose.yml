@@ -64,6 +64,8 @@ services:
       sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - ./app:/app/app  # 로컬의 app 디렉토리를 컨테이너의 /app/app에 마운트(수정사항 즉시 반영)
+      - ./auth_kit:/app/auth_kit  # app과 마찬가지로 수정사항 즉시 반영(Dockerfile COPY와 짝)
+      - ./security_kit:/app/security_kit
       - static_volume:/app/templates
     restart: always
     ports:
