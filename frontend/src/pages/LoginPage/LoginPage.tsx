@@ -46,7 +46,7 @@ function EyeOffIcon() {
 const SOCIAL_PROVIDERS = [
   { name: "카카오로 시작하기", badgeBg: "bg-[#FEE500]", badgeText: "K" },
   { name: "네이버로 시작하기", badgeBg: "bg-[#03C75A]", badgeText: "N" },
-  { name: "구글로 시작하기", badgeBg: "bg-white border border-border", badgeText: "G" },
+  { name: "구글로 시작하기", badgeBg: "bg-white", badgeText: "G" },
 ];
 
 export default function LoginPage() {
@@ -87,7 +87,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-7 flex w-full flex-col gap-2.5">
+        <form onSubmit={handleSubmit} className="mt-14 flex w-full flex-col gap-2.5">
           <div>
             <label htmlFor="email" className="sr-only">
               이메일
@@ -100,10 +100,10 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-lg border border-border bg-secondary px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
+              className="w-full rounded-lg border-0 bg-secondary px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
           </div>
-          <div className="flex items-center rounded-lg border border-border bg-secondary px-3 py-2.5">
+          <div className="flex items-center rounded-lg bg-secondary px-3 py-2.5">
             <label htmlFor="password" className="sr-only">
               비밀번호
             </label>
@@ -136,7 +136,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-1.5 rounded-lg bg-primary px-3 py-3 text-sm font-medium text-primary-foreground disabled:opacity-60"
+            className="mt-1.5 rounded-lg border-0 bg-primary px-3 py-3 text-sm font-medium text-primary-foreground disabled:opacity-60"
           >
             {isSubmitting ? "로그인 중..." : "로그인"}
           </button>
@@ -154,7 +154,7 @@ export default function LoginPage() {
               key={provider.name}
               type="button"
               disabled
-              className="flex items-center justify-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2.5 text-sm font-medium text-foreground opacity-60"
+              className="flex items-center justify-center gap-2 rounded-lg border-0 bg-secondary px-3 py-2.5 text-sm font-medium text-foreground opacity-60"
             >
               <span
                 className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-medium text-foreground ${provider.badgeBg}`}
