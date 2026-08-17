@@ -1,6 +1,7 @@
 import { apiRequest } from "./client";
 import type {
   AuthResponse,
+  AvailabilityResponse,
   LoginRequest,
   PhoneVerificationConfirmRequest,
   PhoneVerificationResponse,
@@ -14,6 +15,12 @@ export function login(request: LoginRequest): Promise<AuthResponse> {
 
 export function getTerms(): Promise<TermsListResponse> {
   return apiRequest<TermsListResponse>("/auth/terms");
+}
+
+export function checkNicknameAvailability(nickname: string): Promise<AvailabilityResponse> {
+  return apiRequest<AvailabilityResponse>(
+    `/auth/available/nickname?nickname=${encodeURIComponent(nickname)}`,
+  );
 }
 
 export function requestPhoneVerification(phoneNumber: string): Promise<PhoneVerificationResponse> {

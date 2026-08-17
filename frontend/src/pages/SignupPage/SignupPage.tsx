@@ -5,6 +5,8 @@ import * as authApi from "@/api/auth";
 import type { Gender, TermItem } from "@/api/types";
 import { useAuth } from "@/hooks/useAuth";
 
+type NicknameStatus = "idle" | "checking" | "available" | "taken";
+
 export default function SignupPage() {
   const { applySession } = useAuth();
   const navigate = useNavigate();
@@ -23,6 +25,10 @@ export default function SignupPage() {
   const [nickname, setNickname] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [gender, setGender] = useState<Gender | "">("");
+
+  // 닉네임 중복확인 — onBlur마다 서버에 물어보고, 겹치면 겹친다고 안내한다.
+  const [nicknameStatus, setNicknameStatus] = useState<NicknameStatus>("idle");
+  const [nicknameMessage, setNicknameMessage] = useState<string | null>(null);
 
   // 휴대폰 본인확인 — 인증번호를 받아 직접 검증까지 완료해야 phoneVerified가 true가 된다.
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -52,6 +58,25 @@ export default function SignupPage() {
   const requiredAgreed = terms
     .filter((t) => t.is_required)
     .every((t) => agreedTypes.has(t.terms_type));
+
+  function handleNicknameChange(value: string) {
+    setNickname(value);
+    setNicknameStatus("idle");
+    setNicknameMessage(null);
+  }
+
+  async function handleNicknameBlur() {
+    if (!nickname) return;
+    setNicknameStatus("checking");
+    try {
+      const res = await authApi.checkNicknameAvailability(nickname);
+      setNicknameStatus(res.available ? "available" : "taken");
+      setNicknameMessage(res.message);
+    } catch (err) {
+      setNicknameStatus("idle");
+      setNicknameMessage(err instanceof Error ? err.message : "닉네임 확인에 실패했습니다.");
+    }
+  }
 
   function handlePhoneNumberChange(value: string) {
     setPhoneNumber(value);
@@ -120,7 +145,8 @@ export default function SignupPage() {
     }
   }
 
-  const canSubmit = requiredAgreed && !!gender && phoneVerified && !isSubmitting;
+  const canSubmit =
+    requiredAgreed && !!gender && phoneVerified && nicknameStatus !== "taken" && !isSubmitting;
 
   return (
     <main className="flex min-h-screen justify-center bg-background px-6 py-10">
@@ -129,7 +155,7 @@ export default function SignupPage() {
 
         <form onSubmit={handleSignup} className="flex flex-col gap-6">
           <section className="flex flex-col gap-2.5 rounded-xl border border-border bg-secondary p-4">
-            <h2 className="text-xs font-medium text-muted-foreground">휴대폰 본인확인</h2>
+            <h2 className="text-xs font-medium text-foreground">휴대폰 본인확인</h2>
             <div className="flex gap-2">
               <input
                 id="phone"
@@ -174,7 +200,7 @@ export default function SignupPage() {
             {phoneMessage && (
               <p
                 className={
-                  phoneVerified ? "text-[11px] text-primary" : "text-[11px] text-muted-foreground"
+                  phoneVerified ? "text-[11px] text-primary" : "text-[11px] text-foreground"
                 }
               >
                 {phoneVerified ? "✓ " : ""}
@@ -184,7 +210,7 @@ export default function SignupPage() {
           </section>
 
           <section className="flex flex-col gap-2.5 rounded-xl border border-border bg-secondary p-4">
-            <h2 className="text-xs font-medium text-muted-foreground">약관 동의</h2>
+            <h2 className="text-xs font-medium text-foreground">약관 동의</h2>
             {terms.map((term) => (
               <label
                 key={term.terms_type}
@@ -203,7 +229,7 @@ export default function SignupPage() {
           </section>
 
           <section className="flex flex-col gap-2.5 rounded-xl border border-border bg-secondary p-4">
-            <h2 className="text-xs font-medium text-muted-foreground">가입정보</h2>
+            <h2 className="text-xs font-medium text-foreground">가입정보</h2>
             <div>
               <label htmlFor="email" className="sr-only">
                 이메일
@@ -231,7 +257,7 @@ export default function SignupPage() {
                 onChange={(event) => setPassword(event.target.value)}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">
+              <p className="mt-1 text-[11px] text-foreground">
                 대문자·소문자·숫자·기호를 포함해 8자 이상 입력하세요.
               </p>
             </div>
@@ -257,12 +283,22 @@ export default function SignupPage() {
                 placeholder="닉네임"
                 required
                 value={nickname}
-                onChange={(event) => setNickname(event.target.value)}
+                onChange={(event) => handleNicknameChange(event.target.value)}
+                onBlur={handleNicknameBlur}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
               />
+              {nicknameStatus === "checking" && (
+                <p className="mt-1 text-[11px] text-foreground">닉네임 확인 중...</p>
+              )}
+              {nicknameStatus === "taken" && (
+                <p className="mt-1 text-[11px] text-destructive">{nicknameMessage}</p>
+              )}
+              {nicknameStatus === "available" && (
+                <p className="mt-1 text-[11px] text-primary">{nicknameMessage}</p>
+              )}
             </div>
             <div>
-              <label htmlFor="birthDate" className="mb-1 block text-xs text-muted-foreground">
+              <label htmlFor="birthDate" className="mb-1 block text-xs text-foreground">
                 생년월일
               </label>
               <input
@@ -275,7 +311,7 @@ export default function SignupPage() {
               />
             </div>
             <div>
-              <label htmlFor="gender" className="mb-1 block text-xs text-muted-foreground">
+              <label htmlFor="gender" className="mb-1 block text-xs text-foreground">
                 성별
               </label>
               <select
@@ -310,7 +346,7 @@ export default function SignupPage() {
             {isSubmitting ? "가입 중..." : "가입하기"}
           </button>
           {!phoneVerified && (
-            <p className="-mt-3 text-center text-[11px] text-muted-foreground">
+            <p className="-mt-3 text-center text-[11px] text-foreground">
               휴대폰 본인확인을 완료해야 가입할 수 있어요.
             </p>
           )}

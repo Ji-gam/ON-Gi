@@ -3,6 +3,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* tailwind.config.js에서 preflight를 껐기 때문에(위 border-width 이슈 회피 목적) box-sizing 리셋도
+   같이 빠졌다 — border-box가 아니면 padding·border가 width:100%에 더해져 입력창이 부모 박스를
+   넘친다. border-width에는 영향 없는 규칙이라 preflight를 끈 이유와는 무관하게 안전하다. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* 앱 공통 버터옐로우+네이비 팔레트와 1:1 대응하는 HSL 값 — 화면 UX 시안(버터옐로우/네이비 기본,
    레드는 알림·미완료·위험 배지에만) 기준. 팔레트 바꿀 때 이 값들만 수정하면 전체 화면에 반영된다.
    pageBg #FFF9DB / text(navy) #1D2C4D / primary(navy) #1D2C4D / primary-foreground #FFF9DB

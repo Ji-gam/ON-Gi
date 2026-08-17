@@ -3,6 +3,44 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/hooks/useAuth";
 
+function EyeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
+      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+}
+
 // 카카오/네이버/구글 버튼은 화면설계서 SCR-01 기준 UI만 먼저 반영 — 백엔드에 소셜 로그인
 // 엔드포인트(api/auth.ts)가 없어 클릭해도 동작하지 않는다. 연동 전까지 disabled로 둔다.
 const SOCIAL_PROVIDERS = [
@@ -84,9 +122,10 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
-              className="shrink-0 text-xs text-muted-foreground"
+              aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+              className="flex shrink-0 items-center justify-center border-0 bg-transparent p-0 text-muted-foreground [appearance:none]"
             >
-              {showPassword ? "숨기기" : "보기"}
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
 
