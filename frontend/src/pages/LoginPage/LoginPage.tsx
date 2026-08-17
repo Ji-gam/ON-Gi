@@ -154,7 +154,7 @@ export default function LoginPage() {
               key={provider.name}
               type="button"
               disabled
-              className="flex items-center justify-center gap-2 rounded-lg border-0 bg-secondary px-3 py-2.5 text-sm font-medium text-foreground opacity-60"
+              className="flex items-center justify-center gap-2 rounded-lg border-0 bg-secondary px-3 py-2.5 text-sm font-medium text-black opacity-60"
             >
               <span
                 className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-medium text-foreground ${provider.badgeBg}`}
