@@ -31,12 +31,14 @@ export default function SignupPage() {
   const [nicknameMessage, setNicknameMessage] = useState<string | null>(null);
 
   // 휴대폰 본인확인 — 인증번호를 받아 직접 검증까지 완료해야 phoneVerified가 true가 된다.
-  const [phoneNumber, setPhoneNumber] = useState("");
+  // TODO(local-test): SMS 게이트웨이 붙기 전 임시로 인증 완료 상태 + 더미 번호로 시작.
+  // 실제 인증 플로우 테스트 시 phoneNumber는 ""로, phoneVerified는 false로 되돌릴 것.
+  const [phoneNumber, setPhoneNumber] = useState("010-0000-0000");
   const [phoneCode, setPhoneCode] = useState("");
   const [isSendingPhoneCode, setIsSendingPhoneCode] = useState(false);
   const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
   const [phoneCodeSent, setPhoneCodeSent] = useState(false);
-  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(true);
   const [phoneMessage, setPhoneMessage] = useState<string | null>(null);
 
   useEffect(() => {
