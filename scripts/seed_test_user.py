@@ -28,8 +28,7 @@ def main() -> None:
     with httpx.Client(base_url=BASE_URL, timeout=10) as client:
         terms = client.get("/api/v1/auth/terms").raise_for_status().json()["terms"]
         agreements = [
-            {"terms_type": t["terms_type"], "version": t["version"], "agreed": t["is_required"]}
-            for t in terms
+            {"terms_type": t["terms_type"], "version": t["version"], "agreed": t["is_required"]} for t in terms
         ]
 
         response = client.post(
