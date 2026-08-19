@@ -14,11 +14,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.utils.schedule_slots import FULL_AVAILABLE_MASK
 from app.models.care_session import CareSession, CareSessionStatus
 from app.models.hypothesis_event import HypothesisEventType
+from app.models.notification import NotificationType
 from app.repositories.care_evaluation_repository import CareEvaluationRepository
 from app.repositories.care_session_repository import CareSessionRepository
 from app.repositories.child_repository import ChildRepository
 from app.repositories.work_schedule_repository import WorkScheduleRepository
 from app.services.hypothesis_event_service import HypothesisEventService
+from app.services.notification_service import NotificationService
 from app.services.point_ledger_service import PointLedgerService
 from app.services.trust_level_service import TrustLevelService
 from auth_kit.models import User
@@ -63,6 +65,7 @@ class CareSessionService:
         self.trust_level_service = TrustLevelService(session)
         self.point_ledger_service = PointLedgerService(session)
         self.event_service = HypothesisEventService(session)
+        self.notification_service = NotificationService(session)
 
     async def create_request(
         self,
@@ -118,6 +121,12 @@ class CareSessionService:
             provider_id,
             payload={"care_date": care_date.isoformat(), "is_solo": is_solo},
         )
+        self.notification_service.notify(
+            provider_id,
+            NotificationType.REQUEST_CREATED,
+            "새 돌봄 요청이 도착했어요.",
+            payload={"care_date": care_date.isoformat()},
+        )
         await self.session.commit()
         await self.session.refresh(care_session)
         return care_session
@@ -142,6 +151,12 @@ class CareSessionService:
             care_session.requester_id,
             payload={"session_id": session_id},
         )
+        self.notification_service.notify(
+            care_session.requester_id,
+            NotificationType.REQUEST_ACCEPTED,
+            "돌봄 요청이 수락됐어요.",
+            payload={"session_id": session_id},
+        )
         await self.session.commit()
         await self.session.refresh(care_session)
 
@@ -155,6 +170,12 @@ class CareSessionService:
             HypothesisEventType.REQUEST_REJECTED,
             provider.id,
             care_session.requester_id,
+            payload={"session_id": session_id},
+        )
+        self.notification_service.notify(
+            care_session.requester_id,
+            NotificationType.REQUEST_REJECTED,
+            "돌봄 요청이 거절됐어요.",
             payload={"session_id": session_id},
         )
         await self.session.commit()
@@ -208,6 +229,12 @@ class CareSessionService:
             care_session.requester_id,
             payload={"session_id": session_id, "actual_minutes": care_session.actual_minutes},
         )
+        self.notification_service.notify(
+            care_session.requester_id,
+            NotificationType.SESSION_COMPLETED,
+            "돌봄이 완료됐어요.",
+            payload={"session_id": session_id},
+        )
         await self.session.commit()
         return care_session
 
@@ -235,6 +262,15 @@ class CareSessionService:
         care_session.cancel_reason = reason
         if was_confirmed and past_deadline:
             care_session.at_fault_user_id = actor.id
+        counterparty_id = (
+            care_session.provider_id if actor.id == care_session.requester_id else care_session.requester_id
+        )
+        self.notification_service.notify(
+            counterparty_id,
+            NotificationType.SESSION_CANCELLED,
+            "돌봄 세션이 취소됐어요.",
+            payload={"session_id": session_id},
+        )
         await self.session.commit()
         await self.session.refresh(care_session)
 
@@ -270,6 +306,12 @@ class CareSessionService:
         care_session.cancelled_at = now
         care_session.cancel_reason = reason
         care_session.at_fault_user_id = at_fault_id
+        self.notification_service.notify(
+            at_fault_id,
+            NotificationType.NO_SHOW_REPORTED,
+            "무단 불참으로 신고됐어요.",
+            payload={"session_id": session_id},
+        )
         await self.session.commit()
         await self.session.refresh(care_session)
 
