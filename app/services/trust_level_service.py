@@ -10,12 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.hypothesis_event import HypothesisEventType
 from app.models.joint_care_session import JointCareSession, JointCareSessionStatus
+from app.models.notification import NotificationType
 from app.models.trust_level import TrustLevel, TrustLevelHistory, TrustRelationship
 from app.models.trust_settings import MIN_REQUIRED_JOINT_COUNT, TrustSettings
 from app.repositories.joint_care_session_repository import JointCareSessionRepository
 from app.repositories.trust_relationship_repository import TrustRelationshipRepository
 from app.repositories.trust_settings_repository import TrustSettingsRepository
 from app.services.hypothesis_event_service import HypothesisEventService
+from app.services.notification_service import NotificationService
 from auth_kit.models import User
 
 SOLO_REQUEST_BLOCKED_MESSAGE = "단독 위탁 요청은 상대와의 신뢰 등급이 L3일 때만 생성할 수 있습니다."
@@ -28,6 +30,14 @@ class TrustLevelService:
         self.joint_repo = JointCareSessionRepository(session)
         self.settings_repo = TrustSettingsRepository(session)
         self.event_service = HypothesisEventService(session)
+        self.notification_service = NotificationService(session)
+
+    def _notify_transition(self, user_a_id: int, user_b_id: int, new_level: TrustLevel) -> None:
+        message = f"신뢰 등급이 {new_level.value}(으)로 변경됐어요."
+        for user_id in (user_a_id, user_b_id):
+            self.notification_service.notify(
+                user_id, NotificationType.TRUST_LEVEL_TRANSITION, message, payload={"new_level": new_level.value}
+            )
 
     async def get_relationship(self, user_a_id: int, user_b_id: int) -> TrustRelationship | None:
         return await self.relationship_repo.get(user_a_id, user_b_id)
@@ -52,6 +62,7 @@ class TrustLevelService:
             user_b_id,
             payload={"previous_level": None, "new_level": TrustLevel.L1.value},
         )
+        self._notify_transition(user_a_id, user_b_id, TrustLevel.L1)
         await self.session.commit()
         await self.session.refresh(relationship)
         return relationship
@@ -86,6 +97,7 @@ class TrustLevelService:
                 relationship.user_b_id,
                 payload={"previous_level": TrustLevel.L1.value, "new_level": TrustLevel.L2.value},
             )
+            self._notify_transition(relationship.user_a_id, relationship.user_b_id, TrustLevel.L2)
 
         await self.session.commit()
         await self.session.refresh(joint_session)
@@ -126,6 +138,7 @@ class TrustLevelService:
                     relationship.user_b_id,
                     payload={"previous_level": TrustLevel.L2.value, "new_level": TrustLevel.L3.value},
                 )
+                self._notify_transition(relationship.user_a_id, relationship.user_b_id, TrustLevel.L3)
 
         await self.session.commit()
         await self.session.refresh(joint_session)
@@ -169,6 +182,7 @@ class TrustLevelService:
             relationship.user_b_id,
             payload={"previous_level": previous_level.value, "new_level": new_level.value, "reason": reason},
         )
+        self._notify_transition(relationship.user_a_id, relationship.user_b_id, new_level)
         await self.session.commit()
         await self.session.refresh(relationship)
         return relationship
