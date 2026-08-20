@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import * as matchingApi from "@/api/matching";
 import type { CandidateResponse } from "@/api/matchingTypes";
@@ -6,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 export default function MatchingPage() {
   const { accessToken } = useAuth();
+  const navigate = useNavigate();
   const [candidates, setCandidates] = useState<CandidateResponse[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,10 +67,14 @@ export default function MatchingPage() {
                   </div>
                   <button
                     type="button"
-                    disabled
-                    className="self-end rounded-lg border border-border bg-background px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground"
+                    onClick={() =>
+                      navigate(
+                        `/care/requests/new?providerId=${candidate.user_id}&nickname=${encodeURIComponent(candidate.nickname)}`,
+                      )
+                    }
+                    className="self-end rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-medium text-primary-foreground"
                   >
-                    요청 보내기 (준비 중)
+                    요청 보내기
                   </button>
                 </li>
               ))}

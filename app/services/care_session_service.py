@@ -103,6 +103,11 @@ class CareSessionService:
         if requested_range & ~complementary_mask:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "상보 가능 시간대가 아닙니다.")
 
+        if await self.repo.has_overlap(requester.id, care_date, start_slot, end_slot) or await self.repo.has_overlap(
+            provider_id, care_date, start_slot, end_slot
+        ):
+            raise HTTPException(status.HTTP_409_CONFLICT, "요청자 또는 제공자가 같은 시간에 처리 중인 요청이 있습니다.")
+
         care_session = CareSession(
             requester_id=requester.id,
             provider_id=provider_id,
@@ -129,6 +134,15 @@ class CareSessionService:
         )
         await self.session.commit()
         await self.session.refresh(care_session)
+        return care_session
+
+    async def list_mine(self, user: User) -> list[CareSession]:
+        return await self.repo.list_for_user(user.id)
+
+    async def get_mine(self, session_id: int, user: User) -> CareSession:
+        care_session = await self.repo.get(session_id)
+        if care_session is None or user.id not in (care_session.requester_id, care_session.provider_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "세션을 찾을 수 없습니다.")
         return care_session
 
     async def _get_requested_session(self, session_id: int, provider: User) -> CareSession:
