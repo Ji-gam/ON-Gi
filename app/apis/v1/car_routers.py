@@ -42,6 +42,7 @@ async def guard_solo_request(session: Session, user: CurrentUser, request: CareR
     responses={
         400: {"description": "상보 가능 시간대가 아니거나 구간·아동 지정이 올바르지 않음"},
         403: {"description": "단독 위탁 요청인데 L3 미달"},
+        409: {"description": "요청자 또는 제공자가 같은 날 겹치는 시간대에 처리 중인(REQUESTED/CONFIRMED) 세션이 이미 있음"},
     },
     dependencies=[Depends(guard_solo_request)],
 )
@@ -56,6 +57,29 @@ async def create_request(session: Session, user: CurrentUser, request: CareReque
         request.end_slot,
         is_solo=request.is_solo,
     )
+    return CareSessionResponse.model_validate(care_session)
+
+
+@car_router.get(
+    "/requests",
+    response_model=list[CareSessionResponse],
+    summary="내 요청 목록",
+    description="REQ-F-CAR-01/02. 로그인 사용자가 요청자·제공자로 관여한 세션을 최신순으로 반환한다.",
+)
+async def list_requests(session: Session, user: CurrentUser) -> list[CareSessionResponse]:
+    care_sessions = await CareSessionService(session).list_mine(user)
+    return [CareSessionResponse.model_validate(cs) for cs in care_sessions]
+
+
+@car_router.get(
+    "/requests/{session_id}",
+    response_model=CareSessionResponse,
+    summary="내 요청/세션 상세",
+    description="REQ-F-CAR-01/02. 요청자·제공자 본인만 조회 가능.",
+    responses={404: {"description": "세션 없음"}},
+)
+async def get_request(session: Session, user: CurrentUser, session_id: int) -> CareSessionResponse:
+    care_session = await CareSessionService(session).get_mine(session_id, user)
     return CareSessionResponse.model_validate(care_session)
 
 

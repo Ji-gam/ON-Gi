@@ -36,6 +36,12 @@ const FIELD_LABELS: Record<string, string> = {
   months_old: "개월 수",
   narrative: "서술",
   answers: "응답",
+  provider_id: "상대",
+  child_id: "아동",
+  meeting_h3: "약속 장소",
+  care_date: "돌봄 날짜",
+  start_slot: "시작 시간",
+  end_slot: "종료 시간",
 };
 
 function toErrorMessage(detail: unknown, status: number): string {

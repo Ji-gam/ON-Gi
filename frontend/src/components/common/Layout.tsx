@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: "/parenting-values", label: "양육 가치관 진단" },
   { to: "/work-schedule", label: "근무표" },
   { to: "/matching", label: "매칭 후보" },
+  { to: "/care/requests", label: "돌봄 요청함" },
   { to: "/login", label: "로그인" },
   { to: "/signup", label: "회원가입" },
 ];

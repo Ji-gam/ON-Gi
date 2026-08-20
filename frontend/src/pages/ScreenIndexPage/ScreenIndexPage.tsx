@@ -10,6 +10,7 @@ const SCREENS = [
   { to: "/work-schedule", scr: "SCR-07", label: "근무표 등록" },
   { to: "/home", scr: "SCR-09", label: "홈 대시보드" },
   { to: "/matching", scr: "SCR-10", label: "매칭 후보 목록" },
+  { to: "/care/requests", scr: "SCR-16", label: "돌봄 요청함" },
 ];
 
 export default function ScreenIndexPage() {
