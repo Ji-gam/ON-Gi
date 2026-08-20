@@ -5,7 +5,11 @@ export function createRequest(
   request: CareRequestCreate,
   accessToken: string,
 ): Promise<CareSessionResponse> {
-  return apiRequest<CareSessionResponse>("/car/requests", { method: "POST", body: request, accessToken });
+  return apiRequest<CareSessionResponse>("/car/requests", {
+    method: "POST",
+    body: request,
+    accessToken,
+  });
 }
 
 export function listRequests(accessToken: string): Promise<CareSessionResponse[]> {
@@ -16,14 +20,20 @@ export function getRequest(sessionId: number, accessToken: string): Promise<Care
   return apiRequest<CareSessionResponse>(`/car/requests/${sessionId}`, { accessToken });
 }
 
-export function acceptRequest(sessionId: number, accessToken: string): Promise<CareSessionResponse> {
+export function acceptRequest(
+  sessionId: number,
+  accessToken: string,
+): Promise<CareSessionResponse> {
   return apiRequest<CareSessionResponse>(`/car/requests/${sessionId}/accept`, {
     method: "POST",
     accessToken,
   });
 }
 
-export function rejectRequest(sessionId: number, accessToken: string): Promise<CareSessionResponse> {
+export function rejectRequest(
+  sessionId: number,
+  accessToken: string,
+): Promise<CareSessionResponse> {
   return apiRequest<CareSessionResponse>(`/car/requests/${sessionId}/reject`, {
     method: "POST",
     accessToken,

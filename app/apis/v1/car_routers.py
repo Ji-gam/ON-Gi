@@ -42,7 +42,9 @@ async def guard_solo_request(session: Session, user: CurrentUser, request: CareR
     responses={
         400: {"description": "상보 가능 시간대가 아니거나 구간·아동 지정이 올바르지 않음"},
         403: {"description": "단독 위탁 요청인데 L3 미달"},
-        409: {"description": "요청자 또는 제공자가 같은 날 겹치는 시간대에 처리 중인(REQUESTED/CONFIRMED) 세션이 이미 있음"},
+        409: {
+            "description": "요청자 또는 제공자가 같은 날 겹치는 시간대에 처리 중인(REQUESTED/CONFIRMED) 세션이 이미 있음"
+        },
     },
     dependencies=[Depends(guard_solo_request)],
 )

@@ -24,7 +24,9 @@ export default function CareRequestsPage() {
     careApi
       .listRequests(accessToken)
       .then(setSessions)
-      .catch((err) => setError(err instanceof Error ? err.message : "요청 목록을 불러오지 못했습니다."));
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "요청 목록을 불러오지 못했습니다."),
+      );
   }
 
   useEffect(load, [accessToken]);
@@ -76,7 +78,10 @@ export default function CareRequestsPage() {
                     key={s.id}
                     className="flex flex-col gap-2 rounded-xl border border-border bg-secondary p-3"
                   >
-                    <Link to={`/care/requests/${s.id}`} className="flex items-center justify-between">
+                    <Link
+                      to={`/care/requests/${s.id}`}
+                      className="flex items-center justify-between"
+                    >
                       <span className="text-xs text-foreground">
                         {s.care_date} · {STATUS_LABELS[s.status]}
                       </span>
@@ -114,7 +119,10 @@ export default function CareRequestsPage() {
               <ul className="flex flex-col gap-2">
                 {sent.map((s) => (
                   <li key={s.id} className="rounded-xl border border-border bg-secondary p-3">
-                    <Link to={`/care/requests/${s.id}`} className="flex items-center justify-between">
+                    <Link
+                      to={`/care/requests/${s.id}`}
+                      className="flex items-center justify-between"
+                    >
                       <span className="text-xs text-foreground">
                         {s.care_date} · {STATUS_LABELS[s.status]}
                       </span>

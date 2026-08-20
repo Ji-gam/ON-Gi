@@ -45,11 +45,15 @@ export default function CareRequestPage() {
     childrenApi
       .listChildren(accessToken)
       .then(setChildren)
-      .catch((err) => setError(err instanceof Error ? err.message : "아동 목록을 불러오지 못했습니다."));
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "아동 목록을 불러오지 못했습니다."),
+      );
     guardianProfileApi
       .getGuardianProfile(accessToken)
       .then((profile) => setMeetingH3(profile.residence_h3))
-      .catch((err) => setError(err instanceof Error ? err.message : "프로필을 불러오지 못했습니다."));
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "프로필을 불러오지 못했습니다."),
+      );
   }, [accessToken]);
 
   async function handleSubmit(event: FormEvent) {
