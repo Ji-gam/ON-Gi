@@ -2,8 +2,10 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.access_log import AccessAction
 from app.models.children import Child, ChildGender, ChildSensitiveInfo
 from app.repositories.child_repository import ChildRepository
+from app.services.access_log_service import AccessLogService
 from auth_kit.models import TermsAgreement, User
 from auth_kit.terms_catalog import TermsType
 
@@ -15,6 +17,7 @@ class ChildService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.repo = ChildRepository(session)
+        self.access_log_service = AccessLogService(session)
 
     async def _assert_guardian_consent(self, user_id: int) -> None:
         row = await self.session.scalar(
@@ -51,6 +54,7 @@ class ChildService:
                     child_id=child.id, allergies=allergies, conditions=conditions, medications=medications
                 )
             )
+        self.access_log_service.log(user.id, child.id, AccessAction.EDIT)
         await self.session.commit()
         await self.session.refresh(child)
         return child
@@ -66,7 +70,10 @@ class ChildService:
         return child
 
     async def get_child(self, user: User, child_id: int) -> Child:
-        return await self._get_owned(user, child_id)
+        child = await self._get_owned(user, child_id)
+        self.access_log_service.log(user.id, child.id, AccessAction.VIEW)
+        await self.session.commit()
+        return child
 
     async def delete_child(self, user: User, child_id: int) -> None:
         child = await self._get_owned(user, child_id)
