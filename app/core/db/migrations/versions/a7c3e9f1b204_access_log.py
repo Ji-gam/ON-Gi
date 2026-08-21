@@ -1,7 +1,7 @@
 """access_log
 
 Revision ID: a7c3e9f1b204
-Revises: f5a1c3e7b902
+Revises: a3b8e1f4c7d2
 Create Date: 2026-08-21 09:00:00.000000
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "a7c3e9f1b204"
-down_revision: Union[str, None] = "f5a1c3e7b902"
+down_revision: Union[str, None] = "a3b8e1f4c7d2"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
