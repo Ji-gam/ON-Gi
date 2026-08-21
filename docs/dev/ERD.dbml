@@ -400,3 +400,14 @@ Table access_logs {
 
   note: 'REQ-F-ADM-03 — 아동 민감정보 조회·수정 접근 로그. ChildService가 기존 트랜잭션 커밋에 얹어 적재'
 }
+
+Table chat_messages {
+  id bigint [pk, increment]
+  relationship_id bigint [not null, ref: > trust_relationships.id, note: 'ondelete CASCADE, indexed']
+  sender_id bigint [not null, ref: > users.id, note: 'ondelete CASCADE, indexed']
+  content varchar(1000) [not null, note: '연락처 패턴 감지 시 마스킹된 상태로 저장']
+  pii_masked boolean [not null, default: false]
+  created_at timestamp [not null, note: 'indexed']
+
+  note: 'REQ-F-COM-01 — 1:1 채팅. 별도 채팅방 테이블 없이 trust_relationships(L1 이상)에 메시지를 붙인다'
+}
