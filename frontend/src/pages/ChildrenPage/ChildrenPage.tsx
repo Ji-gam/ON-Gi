@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import * as authApi from "@/api/auth";
 import * as childrenApi from "@/api/children";
 import type { ChildGender, ChildResponse } from "@/api/childrenTypes";
-import type { TermItem } from "@/api/types";
+import type { AgreementStatusResponse, TermItem } from "@/api/types";
 import { useAuth } from "@/hooks/useAuth";
 
 const GUARDIAN_CONSENT_TYPE = "guardian_consent";
@@ -23,6 +23,7 @@ export default function ChildrenPage() {
 
   // 법정대리인 동의(REQ-F-ACC-03) — 아동 등록 폼은 이 동의가 없으면 잠긴다.
   const [guardianTerm, setGuardianTerm] = useState<TermItem | null>(null);
+  const [agreementStatus, setAgreementStatus] = useState<AgreementStatusResponse | null>(null);
   const [guardianConsentAgreed, setGuardianConsentAgreed] = useState(false);
   const [isSubmittingConsent, setIsSubmittingConsent] = useState(false);
   const [consentError, setConsentError] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export default function ChildrenPage() {
     authApi
       .getMyAgreements(accessToken)
       .then((res) => {
+        setAgreementStatus(res);
         const agreement = res.agreements.find((a) => a.terms_type === GUARDIAN_CONSENT_TYPE);
         if (agreement?.agreed && !agreement.needs_reagreement) setGuardianConsentAgreed(true);
       })
@@ -54,14 +56,23 @@ export default function ChildrenPage() {
       setGuardianConsentAgreed(false);
       return;
     }
-    if (!accessToken || !guardianTerm) return;
+    if (!accessToken || !guardianTerm || !agreementStatus) return;
     setConsentError(null);
     setIsSubmittingConsent(true);
     try {
-      await authApi.submitAgreements(
-        [{ terms_type: guardianTerm.terms_type, version: guardianTerm.version, agreed: true }],
+      // POST /auth/me/agreements는 배치 안에 필수 약관이 전부 agreed=true로 포함돼야
+      // 통과한다(부분 갱신 아님) — 이미 동의된 항목들을 현재 버전으로 함께 실어 보낸다.
+      const carryOver = agreementStatus.agreements
+        .filter((a) => a.agreed && !a.needs_reagreement && a.terms_type !== GUARDIAN_CONSENT_TYPE)
+        .map((a) => ({ terms_type: a.terms_type, version: a.current_version, agreed: true }));
+      const res = await authApi.submitAgreements(
+        [
+          ...carryOver,
+          { terms_type: guardianTerm.terms_type, version: guardianTerm.version, agreed: true },
+        ],
         accessToken,
       );
+      setAgreementStatus(res);
       setGuardianConsentAgreed(true);
     } catch (err) {
       setConsentError(err instanceof Error ? err.message : "동의 처리에 실패했습니다.");
