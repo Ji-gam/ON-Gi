@@ -1,11 +1,13 @@
 import { apiRequest } from "./client";
 import type {
+  AgreementStatusResponse,
   AuthResponse,
   AvailabilityResponse,
   LoginRequest,
   PhoneVerificationConfirmRequest,
   PhoneVerificationResponse,
   SignupRequest,
+  TermAgreementItem,
   TermsListResponse,
 } from "./types";
 
@@ -15,6 +17,21 @@ export function login(request: LoginRequest): Promise<AuthResponse> {
 
 export function getTerms(): Promise<TermsListResponse> {
   return apiRequest<TermsListResponse>("/auth/terms");
+}
+
+export function getMyAgreements(accessToken: string): Promise<AgreementStatusResponse> {
+  return apiRequest<AgreementStatusResponse>("/auth/me/agreements", { accessToken });
+}
+
+export function submitAgreements(
+  agreements: TermAgreementItem[],
+  accessToken: string,
+): Promise<AgreementStatusResponse> {
+  return apiRequest<AgreementStatusResponse>("/auth/me/agreements", {
+    method: "POST",
+    body: { agreements },
+    accessToken,
+  });
 }
 
 export function checkNicknameAvailability(nickname: string): Promise<AvailabilityResponse> {
