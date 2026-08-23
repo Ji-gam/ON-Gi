@@ -42,6 +42,20 @@ export interface TermAgreementItem {
   agreed: boolean;
 }
 
+export interface AgreementStatusItem {
+  terms_type: string;
+  agreed_version: string | null;
+  current_version: string;
+  is_required: boolean;
+  agreed: boolean;
+  needs_reagreement: boolean;
+}
+
+export interface AgreementStatusResponse {
+  onboarding_status: string;
+  agreements: AgreementStatusItem[];
+}
+
 export interface AvailabilityResponse {
   available: boolean;
   message: string;
