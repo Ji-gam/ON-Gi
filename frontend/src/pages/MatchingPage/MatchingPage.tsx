@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import * as matchingApi from "@/api/matching";
 import type { CandidateResponse } from "@/api/matchingTypes";
@@ -48,7 +48,7 @@ export default function MatchingPage() {
                   key={candidate.user_id}
                   className="flex flex-col gap-2.5 rounded-2xl border border-border bg-secondary p-3"
                 >
-                  <div className="flex items-center gap-2.5">
+                  <Link to={`/matching/${candidate.user_id}`} className="flex items-center gap-2.5">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                       {candidate.nickname.slice(0, 1)}
                     </div>
@@ -62,9 +62,9 @@ export default function MatchingPage() {
                       </div>
                     </div>
                     <span className="shrink-0 rounded-lg bg-primary px-2 py-1 text-[11px] font-bold text-primary-foreground">
-                      {candidate.total_score.toFixed(0)}점
+                      {Math.round(candidate.total_score * 100)}점
                     </span>
-                  </div>
+                  </Link>
                   <button
                     type="button"
                     onClick={() =>
