@@ -54,3 +54,7 @@ export function verifyPhone(request: PhoneVerificationConfirmRequest): Promise<{
 export function signup(request: SignupRequest): Promise<AuthResponse> {
   return apiRequest<AuthResponse>("/auth/signup", { method: "POST", body: request });
 }
+
+export function logout(): Promise<void> {
+  return apiRequest<void>("/auth/logout", { method: "POST" });
+}

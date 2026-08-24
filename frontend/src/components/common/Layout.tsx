@@ -53,14 +53,45 @@ function HeartIcon({ active }: { active: boolean }) {
   );
 }
 
+function ChatIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={active ? 2 : 1.5}
+      className="h-5 w-5"
+    >
+      <path d="M4 5h16v10H9l-4 3.5V15H4V5Z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PersonIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={active ? 2 : 1.5}
+      className="h-5 w-5"
+    >
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.5 20c0-4.1 3.4-7 7.5-7s7.5 2.9 7.5 7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 const NAV_ITEMS = [
   { to: "/home", label: "홈", Icon: HomeIcon },
   { to: "/matching", label: "매칭", Icon: PeopleIcon },
   { to: "/care/requests", label: "돌봄", Icon: HeartIcon },
+  { to: "/chat", label: "채팅", Icon: ChatIcon },
+  { to: "/my", label: "MY", Icon: PersonIcon },
 ];
 
 // 로그인 필요 라우트 공통 뼈대. 실제 인증 게이트는 RequireAuth(하위 라우트)가 맡는다 —
-// 로그인 안 한 채로 매칭/돌봄 탭을 누르면 자동으로 로그인 화면으로 보내진다.
+// 로그인 안 한 채로 매칭/돌봄/채팅/MY 탭을 누르면 자동으로 로그인 화면으로 보내진다.
 export default function Layout() {
   return (
     <div className="pb-16">

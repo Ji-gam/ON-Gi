@@ -174,7 +174,12 @@ export default function HomePage() {
           <>
             <section className="flex flex-col gap-2.5 rounded-2xl border border-border bg-secondary p-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-medium text-muted-foreground">진행 중인 돌봄</h2>
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-xs font-medium text-muted-foreground">진행 중인 돌봄</h2>
+                  <span className="rounded-full bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                    예시
+                  </span>
+                </div>
                 <span className="text-[11px] font-semibold text-primary">확정됨</span>
               </div>
               <div className="text-sm font-medium text-foreground">오늘 저녁 6시 · 2시간</div>
@@ -184,13 +189,13 @@ export default function HomePage() {
               <div className="mt-1 flex gap-2">
                 <Link
                   to="/login"
-                  className="flex-1 rounded-lg bg-primary px-3 py-2.5 text-center text-xs font-medium text-primary-foreground"
+                  className="flex-1 rounded-full bg-primary px-3 py-2.5 text-center text-xs font-medium text-primary-foreground"
                 >
                   체크인
                 </Link>
                 <Link
                   to="/login"
-                  className="flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-center text-xs font-medium text-foreground"
+                  className="flex-1 rounded-full border border-border bg-background px-3 py-2.5 text-center text-xs font-medium text-foreground"
                 >
                   일정 보기
                 </Link>
@@ -199,12 +204,17 @@ export default function HomePage() {
 
             <section className="flex flex-col gap-2.5">
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-semibold text-foreground">오늘의 추천 이웃</h2>
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-xs font-semibold text-foreground">오늘의 추천 이웃</h2>
+                  <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                    예시
+                  </span>
+                </div>
                 <Link to="/login" className="text-[11px] font-semibold text-primary">
                   전체 보기
                 </Link>
               </div>
-              <ul className="flex flex-col gap-2">
+              <ul className="flex list-none flex-col gap-2">
                 {[
                   {
                     nickname: "서연",
@@ -264,7 +274,12 @@ export default function HomePage() {
               className="flex items-center justify-between rounded-2xl border border-border bg-secondary p-4"
             >
               <div>
-                <div className="text-sm font-medium text-foreground">받은 요청 2건</div>
+                <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                  <span>받은 요청 2건</span>
+                  <span className="rounded-full bg-background px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
+                    예시
+                  </span>
+                </div>
                 <div className="text-[11px] text-muted-foreground">
                   가장 이른 요청은 내일 오전 9시입니다
                 </div>
@@ -298,13 +313,13 @@ export default function HomePage() {
                 <div className="mt-1 flex gap-2">
                   <Link
                     to={`/care/requests/${upcomingSession.id}`}
-                    className="flex-1 rounded-lg bg-primary px-3 py-2.5 text-center text-xs font-medium text-primary-foreground"
+                    className="flex-1 rounded-full bg-primary px-3 py-2.5 text-center text-xs font-medium text-primary-foreground"
                   >
                     체크인
                   </Link>
                   <Link
                     to={`/care/requests/${upcomingSession.id}`}
-                    className="flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-center text-xs font-medium text-foreground"
+                    className="flex-1 rounded-full border border-border bg-background px-3 py-2.5 text-center text-xs font-medium text-foreground"
                   >
                     일정 보기
                   </Link>
@@ -326,7 +341,7 @@ export default function HomePage() {
                 <p className="text-[11px] text-muted-foreground">아직 추천할 이웃이 없어요.</p>
               )}
               {candidates && candidates.length > 0 && (
-                <ul className="flex flex-col gap-2">
+                <ul className="flex list-none flex-col gap-2">
                   {candidates.slice(0, 2).map((candidate) => (
                     <li key={candidate.user_id}>
                       <Link
