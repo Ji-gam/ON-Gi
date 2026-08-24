@@ -3,9 +3,12 @@ import { Link } from "react-router-dom";
 
 import * as careApi from "@/api/care";
 import type { CareSessionResponse } from "@/api/careTypes";
+import * as childrenApi from "@/api/children";
+import type { ChildDetailResponse } from "@/api/childrenTypes";
 import * as matchingApi from "@/api/matching";
 import type { CandidateResponse } from "@/api/matchingTypes";
 import * as notificationsApi from "@/api/notifications";
+import * as trustApi from "@/api/trust";
 import { useAuth } from "@/hooks/useAuth";
 
 function BellIcon() {
@@ -25,6 +28,14 @@ function BellIcon() {
       <path d="M10 19a2 2 0 0 0 4 0" strokeLinecap="round" />
     </svg>
   );
+}
+
+// score(0~1) -> L1/L2/L3 배지. 신뢰 레벨 자체는 관계 단위 데이터라 계정 단위로는
+// 존재하지 않으므로, 가중합 신뢰 점수(실제 값)를 구간으로 나눠 대신 보여준다.
+function trustLevelBadge(score: number): string {
+  if (score >= 0.7) return "L3";
+  if (score >= 0.4) return "L2";
+  return "L1";
 }
 
 function slotToTime(slot: number): string {
@@ -65,9 +76,11 @@ export default function HomePage() {
   const [candidates, setCandidates] = useState<CandidateResponse[] | null>(null);
   const [sessions, setSessions] = useState<CareSessionResponse[] | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [myTrustScore, setMyTrustScore] = useState<number | null>(null);
+  const [upcomingChild, setUpcomingChild] = useState<ChildDetailResponse | null>(null);
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (!accessToken || !user) return;
     matchingApi
       .getCandidates(accessToken)
       .then(setCandidates)
@@ -80,7 +93,11 @@ export default function HomePage() {
       .listNotifications(accessToken)
       .then((list) => setUnreadCount(list.filter((n) => !n.read_at).length))
       .catch(() => {});
-  }, [accessToken]);
+    trustApi
+      .getScore(user.id, accessToken)
+      .then((res) => setMyTrustScore(res.score))
+      .catch(() => {});
+  }, [accessToken, user]);
 
   const today = toYmd(new Date());
   const upcomingSession =
@@ -91,6 +108,19 @@ export default function HomePage() {
           ? a.start_slot - b.start_slot
           : a.care_date.localeCompare(b.care_date),
       )[0] ?? null;
+
+  useEffect(() => {
+    if (!accessToken || !upcomingSession) {
+      setUpcomingChild(null);
+      return;
+    }
+    // 아동 상세는 본인 소유 아동만 조회 가능 — 내가 요청자일 때만 성공하고,
+    // 내가 제공자면 404가 나서 아동 정보 없이 표시된다.
+    childrenApi
+      .getChild(upcomingSession.child_id, accessToken)
+      .then(setUpcomingChild)
+      .catch(() => setUpcomingChild(null));
+  }, [accessToken, upcomingSession]);
 
   const receivedRequests =
     user && sessions
@@ -103,11 +133,32 @@ export default function HomePage() {
           )
       : [];
 
+  const partnerNickname = (() => {
+    if (!upcomingSession || !user || !candidates) return "이웃님";
+    const partnerId =
+      upcomingSession.requester_id === user.id
+        ? upcomingSession.provider_id
+        : upcomingSession.requester_id;
+    return candidates.find((c) => c.user_id === partnerId)?.nickname ?? "이웃님";
+  })();
+
   return (
     <main className="flex min-h-screen justify-center bg-background px-6 py-10">
       <div className="flex w-full max-w-[480px] flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-base font-medium text-foreground">품앗이온</h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-base font-medium text-foreground">품앗이온</h1>
+            {accessToken && myTrustScore !== null && (
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-primary">
+                신뢰 {trustLevelBadge(myTrustScore)}
+              </span>
+            )}
+            {accessToken && (
+              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                안전
+              </span>
+            )}
+          </div>
           {accessToken && (
             <Link to="/notifications" className="relative text-foreground">
               <BellIcon />
@@ -139,17 +190,26 @@ export default function HomePage() {
                 </div>
                 <div className="text-sm font-medium text-foreground">
                   {sessionWhenLabel(upcomingSession)} ·{" "}
+                  {upcomingChild ? `${upcomingChild.months_old}개월 · ` : ""}
                   {durationLabel(upcomingSession.start_slot, upcomingSession.end_slot)}
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  상대와 함께 돌봄이 예정되어 있어요.
+                  {partnerNickname}님과 함께 · 노쇼 방지금 예치 완료
                 </p>
-                <Link
-                  to={`/care/requests/${upcomingSession.id}`}
-                  className="mt-1 rounded-lg bg-primary px-3 py-2.5 text-center text-xs font-medium text-primary-foreground"
-                >
-                  상세 보기
-                </Link>
+                <div className="mt-1 flex gap-2">
+                  <Link
+                    to={`/care/requests/${upcomingSession.id}`}
+                    className="flex-1 rounded-lg bg-primary px-3 py-2.5 text-center text-xs font-medium text-primary-foreground"
+                  >
+                    체크인
+                  </Link>
+                  <Link
+                    to={`/care/requests/${upcomingSession.id}`}
+                    className="flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-center text-xs font-medium text-foreground"
+                  >
+                    일정 보기
+                  </Link>
+                </div>
               </section>
             )}
 
@@ -172,22 +232,45 @@ export default function HomePage() {
                     <li key={candidate.user_id}>
                       <Link
                         to={`/matching/${candidate.user_id}`}
-                        className="flex items-center gap-2.5 rounded-2xl border border-border bg-secondary p-3"
+                        className="flex flex-col gap-2 rounded-2xl border border-border bg-secondary p-3"
                       >
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                          {candidate.nickname.slice(0, 1)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs font-medium text-foreground">
-                            {candidate.nickname}님 · 도보 {Math.round(candidate.distance_m / 80)}분
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                            {candidate.nickname.slice(0, 1)}
                           </div>
-                          <div className="truncate text-[11px] text-muted-foreground">
-                            {candidate.reason}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                              <span>{candidate.nickname}님</span>
+                              <span className="rounded-full bg-background px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                                {trustLevelBadge(candidate.trust_score)}
+                              </span>
+                              <span className="rounded-full bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                본인인증
+                              </span>
+                            </div>
+                            <div className="truncate text-[11px] text-muted-foreground">
+                              {candidate.reason}
+                            </div>
                           </div>
+                          <span className="shrink-0 rounded-lg bg-primary px-2 py-1 text-[11px] font-bold text-primary-foreground">
+                            {Math.round(candidate.total_score * 100)}점
+                          </span>
                         </div>
-                        <span className="shrink-0 rounded-lg bg-primary px-2 py-1 text-[11px] font-bold text-primary-foreground">
-                          {Math.round(candidate.total_score * 100)}점
-                        </span>
+                        <div className="flex gap-1.5 pl-11">
+                          <span className="rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
+                            도보 {Math.round(candidate.distance_m / 80)}분
+                          </span>
+                          {candidate.age_similarity >= 0.6 && (
+                            <span className="rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
+                              또래 아이
+                            </span>
+                          )}
+                          {candidate.complementary_score >= 0.5 && (
+                            <span className="rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
+                              시간대 잘 맞음
+                            </span>
+                          )}
+                        </div>
                       </Link>
                     </li>
                   ))}

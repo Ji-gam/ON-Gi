@@ -5,6 +5,10 @@ export function listChildren(accessToken: string): Promise<ChildResponse[]> {
   return apiRequest<ChildResponse[]>("/acc/children", { accessToken });
 }
 
+export function getChild(childId: number, accessToken: string): Promise<ChildDetailResponse> {
+  return apiRequest<ChildDetailResponse>(`/acc/children/${childId}`, { accessToken });
+}
+
 export function createChild(
   request: ChildCreateRequest,
   accessToken: string,
