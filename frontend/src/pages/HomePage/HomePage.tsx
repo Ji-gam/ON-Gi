@@ -142,45 +142,144 @@ export default function HomePage() {
     return candidates.find((c) => c.user_id === partnerId)?.nickname ?? "이웃님";
   })();
 
+  // 비로그인 상태에서도 대시보드 모양은 그대로 보여준다 — 실제 데이터가 없으니
+  // 이 화면이 무엇을 보여주는 화면인지 예시로 채우고, 모든 액션은 로그인으로 유도한다.
+  const isGuest = !accessToken;
+  const detailLinkTarget = (path: string) => (isGuest ? "/login" : path);
+
   return (
     <main className="flex min-h-screen justify-center bg-background px-6 py-10">
       <div className="flex w-full max-w-[480px] flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <h1 className="text-base font-medium text-foreground">품앗이온</h1>
-            {accessToken && myTrustScore !== null && (
-              <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-primary">
-                신뢰 {trustLevelBadge(myTrustScore)}
-              </span>
-            )}
-            {accessToken && (
-              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
-                안전
-              </span>
-            )}
+            <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-primary">
+              신뢰 {isGuest ? "L2" : myTrustScore !== null ? trustLevelBadge(myTrustScore) : "-"}
+            </span>
+            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+              안전
+            </span>
           </div>
-          {accessToken && (
-            <Link to="/notifications" className="relative text-foreground">
-              <BellIcon />
-              {unreadCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </Link>
-          )}
+          <Link to={detailLinkTarget("/notifications")} className="relative text-foreground">
+            <BellIcon />
+            {!isGuest && unreadCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </Link>
         </div>
 
-        {!accessToken && (
-          <Link
-            to="/login"
-            className="rounded-2xl border border-border bg-secondary px-4 py-4 text-center text-sm font-medium text-foreground"
-          >
-            로그인하고 이웃을 만나보세요 →
-          </Link>
-        )}
+        {isGuest ? (
+          <>
+            <section className="flex flex-col gap-2.5 rounded-2xl border border-border bg-secondary p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-medium text-muted-foreground">진행 중인 돌봄</h2>
+                <span className="text-[11px] font-semibold text-primary">확정됨</span>
+              </div>
+              <div className="text-sm font-medium text-foreground">오늘 저녁 6시 · 2시간</div>
+              <p className="text-[11px] text-muted-foreground">
+                이웃님과 함께 · 노쇼 방지금 예치 완료
+              </p>
+              <div className="mt-1 flex gap-2">
+                <Link
+                  to="/login"
+                  className="flex-1 rounded-lg bg-primary px-3 py-2.5 text-center text-xs font-medium text-primary-foreground"
+                >
+                  체크인
+                </Link>
+                <Link
+                  to="/login"
+                  className="flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-center text-xs font-medium text-foreground"
+                >
+                  일정 보기
+                </Link>
+              </div>
+            </section>
 
-        {accessToken && (
+            <section className="flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-semibold text-foreground">오늘의 추천 이웃</h2>
+                <Link to="/login" className="text-[11px] font-semibold text-primary">
+                  전체 보기
+                </Link>
+              </div>
+              <ul className="flex flex-col gap-2">
+                {[
+                  {
+                    nickname: "서연",
+                    trust: "L3",
+                    reason: "아이 재우는 방식이 비슷하고, 도보 7분 거리예요.",
+                    tags: ["4세 여아", "주말 가능"],
+                  },
+                  {
+                    nickname: "민호",
+                    trust: "L2",
+                    reason: "제가 야간 근무인 시간대에 민호 님은 비번이에요.",
+                    tags: ["5세 남아", "평일 야간"],
+                  },
+                ].map((example) => (
+                  <li key={example.nickname}>
+                    <Link
+                      to="/login"
+                      className="flex flex-col gap-2 rounded-2xl border border-border bg-secondary p-3"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                          {example.nickname.slice(0, 1)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                            <span>{example.nickname}님</span>
+                            <span className="rounded-full bg-background px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                              {example.trust}
+                            </span>
+                            <span className="rounded-full bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                              본인인증
+                            </span>
+                          </div>
+                          <div className="truncate text-[11px] text-muted-foreground">
+                            {example.reason}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 pl-11">
+                        {example.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <Link
+              to="/login"
+              className="flex items-center justify-between rounded-2xl border border-border bg-secondary p-4"
+            >
+              <div>
+                <div className="text-sm font-medium text-foreground">받은 요청 2건</div>
+                <div className="text-[11px] text-muted-foreground">
+                  가장 이른 요청은 내일 오전 9시입니다
+                </div>
+              </div>
+              <span className="text-muted-foreground">›</span>
+            </Link>
+
+            <Link
+              to="/login"
+              className="rounded-2xl border border-border bg-secondary px-4 py-4 text-center text-sm font-medium text-foreground"
+            >
+              로그인하고 시작하기 →
+            </Link>
+          </>
+        ) : (
           <>
             {upcomingSession && (
               <section className="flex flex-col gap-2.5 rounded-2xl border border-border bg-secondary p-4">
