@@ -32,7 +32,7 @@ export default function HomePage() {
             </Link>
           </div>
           {topCandidate ? (
-            <div className="flex items-center gap-2.5">
+            <Link to={`/matching/${topCandidate.user_id}`} className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                 {topCandidate.nickname.slice(0, 1)}
               </div>
@@ -42,9 +42,9 @@ export default function HomePage() {
                 </div>
               </div>
               <span className="shrink-0 rounded-lg bg-primary px-2 py-1 text-[11px] font-bold text-primary-foreground">
-                {topCandidate.total_score.toFixed(0)}점
+                {Math.round(topCandidate.total_score * 100)}점
               </span>
-            </div>
+            </Link>
           ) : (
             <p className="text-[11px] text-muted-foreground">아직 추천할 이웃이 없어요.</p>
           )}

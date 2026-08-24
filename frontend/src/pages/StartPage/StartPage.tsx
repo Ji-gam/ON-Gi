@@ -30,7 +30,7 @@ export default function StartPage() {
 
       <button
         type="button"
-        onClick={() => navigate("/login")}
+        onClick={() => navigate("/home")}
         className="w-full max-w-[480px] rounded-lg border-0 bg-primary py-3 text-sm font-medium text-primary-foreground"
       >
         시작하기

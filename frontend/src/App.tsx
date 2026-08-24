@@ -9,6 +9,7 @@ import ChildrenPage from "./pages/ChildrenPage/ChildrenPage";
 import GuardianProfilePage from "./pages/GuardianProfilePage/GuardianProfilePage";
 import HomePage from "./pages/HomePage/HomePage";
 import LoginPage from "./pages/LoginPage/LoginPage";
+import MatchingDetailPage from "./pages/MatchingDetailPage/MatchingDetailPage";
 import MatchingPage from "./pages/MatchingPage/MatchingPage";
 import ParentingValuesPage from "./pages/ParentingValuesPage/ParentingValuesPage";
 import ScreenIndexPage from "./pages/ScreenIndexPage/ScreenIndexPage";
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
           { path: "/parenting-values", element: <ParentingValuesPage /> },
           { path: "/work-schedule", element: <WorkSchedulePage /> },
           { path: "/matching", element: <MatchingPage /> },
+          { path: "/matching/:userId", element: <MatchingDetailPage /> },
           { path: "/care/requests/new", element: <CareRequestPage /> },
           { path: "/care/requests", element: <CareRequestsPage /> },
           { path: "/care/requests/:sessionId", element: <CareSessionDetailPage /> },
