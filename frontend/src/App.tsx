@@ -5,12 +5,16 @@ import RequireAuth from "./components/common/RequireAuth";
 import CareRequestPage from "./pages/CareRequestPage/CareRequestPage";
 import CareRequestsPage from "./pages/CareRequestsPage/CareRequestsPage";
 import CareSessionDetailPage from "./pages/CareSessionDetailPage/CareSessionDetailPage";
+import ChatListPage from "./pages/ChatListPage/ChatListPage";
+import ChatThreadPage from "./pages/ChatThreadPage/ChatThreadPage";
 import ChildrenPage from "./pages/ChildrenPage/ChildrenPage";
 import GuardianProfilePage from "./pages/GuardianProfilePage/GuardianProfilePage";
 import HomePage from "./pages/HomePage/HomePage";
 import LoginPage from "./pages/LoginPage/LoginPage";
 import MatchingDetailPage from "./pages/MatchingDetailPage/MatchingDetailPage";
 import MatchingPage from "./pages/MatchingPage/MatchingPage";
+import MyPage from "./pages/MyPage/MyPage";
+import NotificationsPage from "./pages/NotificationsPage/NotificationsPage";
 import ParentingValuesPage from "./pages/ParentingValuesPage/ParentingValuesPage";
 import ScreenIndexPage from "./pages/ScreenIndexPage/ScreenIndexPage";
 import SignupPage from "./pages/SignupPage/SignupPage";
@@ -39,9 +43,13 @@ export const router = createBrowserRouter([
           { path: "/work-schedule", element: <WorkSchedulePage /> },
           { path: "/matching", element: <MatchingPage /> },
           { path: "/matching/:userId", element: <MatchingDetailPage /> },
+          { path: "/notifications", element: <NotificationsPage /> },
           { path: "/care/requests/new", element: <CareRequestPage /> },
           { path: "/care/requests", element: <CareRequestsPage /> },
           { path: "/care/requests/:sessionId", element: <CareSessionDetailPage /> },
+          { path: "/chat", element: <ChatListPage /> },
+          { path: "/chat/:partnerId", element: <ChatThreadPage /> },
+          { path: "/my", element: <MyPage /> },
         ],
       },
     ],

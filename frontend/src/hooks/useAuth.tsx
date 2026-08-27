@@ -10,6 +10,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   // 회원가입 응답도 로그인과 같은 AuthResponse 형태로 토큰을 함께 내려준다(auth_kit 설계) — 재로그인 불필요.
   applySession: (result: AuthResponse) => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -30,6 +31,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       applySession: (result) => {
         setUser(result.user);
         setAccessToken(result.access_token);
+      },
+      logout: async () => {
+        try {
+          await authApi.logout();
+        } finally {
+          setUser(null);
+          setAccessToken(null);
+        }
       },
     }),
     [user, accessToken],
