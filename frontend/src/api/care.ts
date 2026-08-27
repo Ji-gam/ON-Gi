@@ -1,4 +1,11 @@
-import type { CancelRequest, CareRequestCreate, CareSessionResponse } from "./careTypes";
+import type {
+  CancelRequest,
+  CareLogResponse,
+  CareLogUpsert,
+  CareRequestCreate,
+  CareSessionResponse,
+  CheckinRequest,
+} from "./careTypes";
 import { apiRequest } from "./client";
 
 export function createRequest(
@@ -50,4 +57,42 @@ export function cancelRequest(
     body: request,
     accessToken,
   });
+}
+
+export function checkin(
+  sessionId: number,
+  request: CheckinRequest,
+  accessToken: string,
+): Promise<CareSessionResponse> {
+  return apiRequest<CareSessionResponse>(`/car/requests/${sessionId}/checkin`, {
+    method: "POST",
+    body: request,
+    accessToken,
+  });
+}
+
+export function checkout(sessionId: number, accessToken: string): Promise<CareSessionResponse> {
+  return apiRequest<CareSessionResponse>(`/car/requests/${sessionId}/checkout`, {
+    method: "POST",
+    accessToken,
+  });
+}
+
+export function upsertJournal(
+  sessionId: number,
+  request: CareLogUpsert,
+  accessToken: string,
+): Promise<CareLogResponse> {
+  return apiRequest<CareLogResponse>(`/car/requests/${sessionId}/journal`, {
+    method: "PUT",
+    body: request,
+    accessToken,
+  });
+}
+
+export function getJournal(
+  sessionId: number,
+  accessToken: string,
+): Promise<CareLogResponse | null> {
+  return apiRequest<CareLogResponse | null>(`/car/requests/${sessionId}/journal`, { accessToken });
 }

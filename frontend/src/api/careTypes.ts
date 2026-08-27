@@ -36,3 +36,26 @@ export interface CareSessionResponse {
   cancel_reason: string | null;
   at_fault_user_id: number | null;
 }
+
+export interface CheckinRequest {
+  lat: number;
+  lng: number;
+  reason?: string | null;
+}
+
+export interface CareLogUpsert {
+  meal?: string | null;
+  sleep?: string | null;
+  mood?: string | null;
+  note?: string | null;
+  allergy_note?: string | null;
+}
+
+export interface CareLogResponse {
+  session_id: number;
+  meal: string | null;
+  sleep: string | null;
+  mood: string | null;
+  note: string | null;
+  allergy_note: string | null;
+}
