@@ -12,6 +12,13 @@
   box-sizing: border-box;
 }
 
+/* preflight를 끈 탓에 <a>가 브라우저 기본 밑줄·파란색을 그대로 쓴다. 앱 전역에서 링크는
+   버튼/카드 형태로 쓰이므로 밑줄과 기본 색을 지우고 부모 색을 따르게 한다. */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
 /* 앱 공통 버터옐로우+네이비 팔레트와 1:1 대응하는 HSL 값 — 화면 UX 시안(버터옐로우/네이비 기본,
    레드는 알림·미완료·위험 배지에만) 기준. 팔레트 바꿀 때 이 값들만 수정하면 전체 화면에 반영된다.
    pageBg #FFF9DB / text(navy) #1D2C4D / primary(navy) #1D2C4D / primary-foreground #FFF9DB

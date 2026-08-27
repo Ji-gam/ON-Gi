@@ -71,7 +71,11 @@ function CountdownRing({ remainingMs }: { remainingMs: number }) {
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-[11px] text-muted-foreground">시작까지</span>
         <span className="text-xl font-bold text-foreground">
-          {minutes > 0 ? `${minutes}분` : "곧 시작"}
+          {minutes <= 0
+            ? "곧 시작"
+            : minutes < 60
+              ? `${minutes}분`
+              : `${Math.floor(minutes / 60)}시간`}
         </span>
       </div>
     </div>
@@ -254,6 +258,12 @@ export default function CareSessionDetailPage() {
             </p>
           )}
         </section>
+
+        {isProvider && !child && (careSession.status === "CONFIRMED" || isInProgress) && (
+          <p className="rounded-2xl border border-dashed border-border bg-secondary p-3 text-[11px] leading-relaxed text-muted-foreground">
+            아동 알레르기·투약 정보는 제공자 조회 권한이 열리면 이 자리에 자동으로 표시됩니다.
+          </p>
+        )}
 
         {allergies && allergies.length > 0 && (
           <section className="flex flex-col gap-2 rounded-2xl border border-destructive/30 bg-destructive/5 p-4">

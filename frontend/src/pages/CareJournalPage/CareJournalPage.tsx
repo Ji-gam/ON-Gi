@@ -39,8 +39,25 @@ export default function CareJournalPage() {
       .then((journal) => {
         if (!journal) return;
         if (journal.mood) setMood(journal.mood);
-        if (journal.note) setNote(journal.note);
         if (journal.allergy_note) setAllergyNote(journal.allergy_note);
+        if (journal.note) {
+          // 저장 시 note 앞에 붙인 "[태그, 태그] " 접두사를 다시 칩 선택 상태로 되돌린다.
+          // 이걸 안 하면 재편집할 때 접두사가 본문에 남아 중복 저장된다.
+          const match = journal.note.match(/^\[([^\]]*)\]\s*/);
+          if (match) {
+            setTags(
+              new Set(
+                match[1]
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean),
+              ),
+            );
+            setNote(journal.note.slice(match[0].length));
+          } else {
+            setNote(journal.note);
+          }
+        }
       })
       .catch(() => {});
   }, [accessToken, sessionId]);

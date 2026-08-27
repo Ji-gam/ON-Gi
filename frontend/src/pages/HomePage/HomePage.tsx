@@ -367,7 +367,7 @@ export default function HomePage() {
                             </div>
                           </div>
                           <span className="shrink-0 rounded-lg bg-primary px-2 py-1 text-[11px] font-bold text-primary-foreground">
-                            {Math.round(candidate.total_score * 100)}점
+                            {Math.round(candidate.total_score * 100)}%
                           </span>
                         </div>
                         <div className="flex gap-1.5 pl-11">
